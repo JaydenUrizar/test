@@ -242,7 +242,7 @@ export class Game {
       case 'plant~': this.ent.setPlantStage(e.id, e.st); break;
       case 'plant-': this.ent.removePlant(e.id); break;
       case 'crate~': this.ent.setCrate(e.id, e.opened); break;
-      case 'cont': st.cont = e; this.emit('cont', e); if (this.ui.inventory && !this.ui.inventory.isOpen()) this.ui.inventory.open('inventory'); break;
+      case 'cont': st.cont = e; this.emit('cont', e); if (e.first && this.ui.inventory && !this.ui.inventory.isOpen()) this.ui.inventory.open('inventory'); break;
       case 'contx': st.cont = null; this.emit('contx'); break;
       case 'craftq': st.craftQ = e.q; this.emit('craftq'); break;
       case 'crafted': audio.sfx('craft', null, 0.8); this.tutorial && this.tutorial.event('crafted', e.r); break;

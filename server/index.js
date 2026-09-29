@@ -117,7 +117,13 @@ export function createServer({ port = PORT, host = HOST, dataDir = DATA_DIR } = 
 
   // ---------------- WebSocket
   const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 16 * 1024, perMessageDeflate: false });
+  const ipConns = new Map(), joinBuckets = new Map();
+  const clientIp = (req) => (process.env.TRUST_PROXY ? String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() : '') || req.socket.remoteAddress || '';
   wss.on('connection', (ws, req) => {
+    const ip = clientIp(req);
+    const n = (ipConns.get(ip) || 0) + 1; ipConns.set(ip, n);
+    ws.on('close', () => { const c = (ipConns.get(ip) || 1) - 1; if (c <= 0) ipConns.delete(ip); else ipConns.set(ip, c); });
+    if (n > (parseInt(process.env.MAX_CONN_PER_IP || '12', 10))) { try { ws.send(JSON.stringify({ t: 'error', error: 'Too many connections from your address' })); } catch {} ws.close(); return; }
     let ctx = null; // { world, p }
     ws.isAlive = true;
     ws.on('pong', () => { ws.isAlive = true; });
@@ -131,6 +137,8 @@ export function createServer({ port = PORT, host = HOST, dataDir = DATA_DIR } = 
       if (!ctx) {
         if (msg.t !== 'join') return;
         clearTimeout(timer);
+        let jb = joinBuckets.get(ip); if (!jb) joinBuckets.set(ip, (jb = new Bucket(30 / 60, 30)));
+        if (!jb.allow()) { send({ t: 'error', error: 'Too many join attempts — wait a moment' }); ws.close(); return; }
         try {
           const user = accounts.byToken(msg.token);
           if (!user) throw new Error('Session expired — please sign in again');

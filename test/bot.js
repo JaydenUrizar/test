@@ -65,6 +65,7 @@ export class Bot {
       case 'corr': this.s.x = e.x; this.s.y = e.y; this.s.z = e.z; this.corrs = (this.corrs || 0) + 1; break;
       case 'dead': this.dead = true; this.deadInfo = e; break;
       case 'respawned': this.dead = false; this.s.x = e.x; this.s.y = e.y; this.s.z = e.z; break;
+      case 'ammo': { const it = this.inv[this.sel]; if (it && it.ammo !== undefined) it.ammo = e.a; break; }
       case 'hm': this.hits = (this.hits || 0) + 1; this.lastHit = e; break;
       case 'hurt': this.hurts = (this.hurts || 0) + 1; break;
     }

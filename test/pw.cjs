@@ -11,7 +11,7 @@ async function startServer(port, dataDir) {
   let out = '';
   p.stdout.on('data', (d) => { out += d; }); p.stderr.on('data', (d) => { out += d; });
   for (let i = 0; i < 80; i++) { try { const r = await fetch(`http://127.0.0.1:${port}/api/health`); if (r.ok) break; } catch {} await new Promise((r) => setTimeout(r, 100)); }
-  return { proc: p, log: () => out, stop: () => new Promise((r) => { p.once('exit', r); p.kill('SIGINT'); setTimeout(() => { p.kill('SIGKILL'); r(); }, 3000); }) };
+  return { proc: p, port, log: () => out, stop: () => new Promise((r) => { p.once('exit', r); p.kill('SIGINT'); setTimeout(() => { p.kill('SIGKILL'); r(); }, 3000); }) };
 }
 async function launch(opts = {}) {
   const browser = await playwright.chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });

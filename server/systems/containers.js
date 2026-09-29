@@ -34,8 +34,8 @@ Object.assign(GameWorld.prototype, {
     return c;
   },
   closeFor(p) { if (p.open) { p.open = null; this.emit(p, { e: 'contx' }); } return null; },
-  contMsg(c, p) {
-    const m = { e: 'cont', kind: c.kind, id: p.open.id, k: p.open.k, title: c.title, slots: c.slots };
+  contMsg(c, p, first = false) {
+    const m = { e: 'cont', first, kind: c.kind, id: p.open.id, k: p.open.k, title: c.title, slots: c.slots };
     if (c.dep) { m.sub = { on: !!c.dep.on, burn: +(c.dep.burn || 0).toFixed(1), prog: +(c.dep.prog || 0).toFixed(1), lk: !!c.dep.lock }; }
     return m;
   },
@@ -89,7 +89,7 @@ Object.assign(GameWorld.prototype, {
           p.stats.looted = (p.stats.looted || 0) + 1;
         }
         p.open = { k: 'crate', id };
-        this.emit(p, this.contMsg(this.openContainer(p), p));
+        this.emit(p, this.contMsg(this.openContainer(p), p, true));
         return;
       }
       case 'dep': {
@@ -108,7 +108,7 @@ Object.assign(GameWorld.prototype, {
           if (d.lock && !this.authorized(p, d)) { this.emit(p, { e: 'sfx', s: 'locked' }); return this.emit(p, { e: 'lockprompt', k: 'dep', id: d.id }); }
           p.open = { k: 'dep', id: d.id };
           const c = this.openContainer(p);
-          if (c) this.emit(p, this.contMsg(c, p));
+          if (c) this.emit(p, this.contMsg(c, p, true));
         }
         return;
       }

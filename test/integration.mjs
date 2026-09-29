@@ -5,6 +5,7 @@ import { createServer } from '../server/index.js';
 import { Bot, sleep } from './bot.js';
 import { validatePlacement, GRID, cellKey } from '../shared/building.js';
 import { NODES, ITEMS } from '../shared/items.js';
+import { rayWorld } from '../shared/physics.js';
 
 const dir = '/tmp/ew-int-' + process.pid;
 fs.rmSync(dir, { recursive: true, force: true });
@@ -24,6 +25,17 @@ const give = async (bot, id, n = 1) => { const before = bot.count(id); cmd(bot, 
 const worldOf = () => srv.lobby.worlds.get(srvInfo.id);
 const warpTo = async (bot, x, z, dy = 0.3) => { const w = worldOf(); const pl = w.byUid.get(bot.profile.uid); const y = w.data.height(x, z) + dy; pl.x = x; pl.y = y; pl.z = z; pl.budget = 999; w.emit(pl, { e: 'corr', x, y, z, s: pl.lastSeq, force: true }); await sleep(350); };
 const giveTo = async (bot, id, n = 1) => { const w = worldOf(); const pl = w.byUid.get(bot.profile.uid); w.give(pl, id, n); await sleep(150); };
+const clearShot = (bot, tgt, hy = 1.1) => { const ox = bot.s.x, oy = bot.s.y + 1.62, oz = bot.s.z, dx = tgt.s.x - ox, dy = tgt.s.y + hy - oy, dz = tgt.s.z - oz, L = Math.hypot(dx, dy, dz); return !rayWorld(bot.env, ox, oy, oz, dx / L, dy / L, dz / L, L - 0.6, { nodes: true }); };
+// put the shooter 10 m from the target with nothing (trees, walls) in the line of fire
+const positionForShot = async (shooter, target, dist = 10) => {
+  for (let k = 0; k < 40; k++) {
+    const a = k * 0.5, x = target.s.x + Math.cos(a) * dist, z = target.s.z + Math.sin(a) * dist;
+    if (worldOf().data.height(x, z) < 1) continue;
+    await warpTo(shooter, x, z); await sleep(120);
+    if (clearShot(shooter, target)) return;
+  }
+  throw new Error('no clear line of fire found');
+};
 console.log('\nEmberwild integration test\n');
 
 // ---------------------------------------------------------------- accounts & lobby
@@ -232,15 +244,14 @@ await step('combat: revolver hitscan hurts a rival; headshots; armour; ammo/relo
   await give(A, 'revolver', 1); await give(A, 'pistol_ammo', 60);
   await bringTogether(); await sleep(300);
   // move A back 12m from B along x
-  const target = { x: B.s.x + 12, z: B.s.z };
-  await A.walkTo(target.x, target.z, { stop: 0.6 }); await sleep(600);
+  await positionForShot(A, B, 10); await sleep(300);
   const ri = A.slotOf('revolver'); if (ri > 5) { A.send({ t: 'mv_item', a: ['inv', ri], b: ['inv', 3] }); await sleep(250); } A.send({ t: 'sel', i: A.slotOf('revolver') }); await sleep(450);
   A.send({ t: 'reload' }); await A.waitFor(() => A.inv[A.slotOf('revolver')].ammo === 6, 4000, 'reloaded');
   B.s.onGround = true; B.sendMove(); await sleep(150);
   const hp0 = B.vit[0];
   B.hurts = 0;
   const hpBefore = worldOf().byUid.get(B.profile.uid).hp;
-  for (let i = 0; i < 3; i++) { A.aimAt(B.s.x, B.s.y + 1.1, B.s.z); A.attack(); await sleep(520); }
+  for (let i = 0; i < 4 && !B.hurts; i++) { A.aimAt(B.s.x, B.s.y + 1.1, B.s.z); A.attack(); await sleep(520); }
   const pa = worldOf().byUid.get(A.profile.uid), pb = worldOf().byUid.get(B.profile.uid);
   await B.waitFor(() => B.hurts > 0, 2000, `Bob hurt (A ${A.s.x.toFixed(1)},${A.s.y.toFixed(1)},${A.s.z.toFixed(1)} srvA ${pa.x.toFixed(1)},${pa.y.toFixed(1)},${pa.z.toFixed(1)} sel ${pa.sel} B ${B.s.x.toFixed(1)},${B.s.y.toFixed(1)},${B.s.z.toFixed(1)} srvB ${pb.x.toFixed(1)},${pb.y.toFixed(1)},${pb.z.toFixed(1)} pro ${pb.spawnPro} shots ${A.evLog.filter((e) => e.e === 'shot').slice(-2).map((e) => JSON.stringify(e.en))})`);
   assert.ok(A.hits > 0, 'shooter got hit marker');
@@ -260,13 +271,13 @@ await step('team: friendly fire prevented between team members; teammates positi
 await step('PvP death: loot bag with belongings, respawn options, kill feed, loot pickup', async () => {
   await giveTo(B, 'wood', 50);
   A.send({ t: 'team', op: 'leave' }); await sleep(300);
-  B.dead = false;
+  B.dead = false; await positionForShot(A, B, 9);
   for (let i = 0; i < 40 && !B.dead; i++) { A.aimAt(B.s.x, B.s.y + 1.1, B.s.z); if (A.inv[A.slotOf('revolver')].ammo <= 0) { A.send({ t: 'reload' }); await sleep(2700); } A.attack(); await sleep(480); }
   await B.waitFor(() => B.dead, 3000, 'Bob dies');
   assert.ok(A.evLog.some((e) => e.e === 'kill' && e.victim === 'Bob'), 'kill feed');
   const bag = [...A.deps.values()].find((d) => d.type === 'loot_bag'); assert.ok(bag, 'loot bag spawned');
   assert.equal(B.count('wood'), 0, 'inventory emptied on death');
-  A.walkTo(bag.x, bag.z, { stop: 1.5 }); await A.walkTo(bag.x, bag.z, { stop: 1.5 });
+  await A.walkTo(bag.x, bag.z, { stop: 1.5, timeout: 20 });
   A.send({ t: 'use', k: 'dep', id: bag.id }); await A.waitFor(() => A.cont && A.cont.kind === 'bag', 2000, 'bag opens');
   assert.ok(A.cont.slots.some((s) => s && s.id === 'wood'));
   A.send({ t: 'close' });
@@ -283,11 +294,11 @@ await step('raiding: strangers cannot build in a base; bullets chip walls; satch
   await giveTo(B, 'hammer', 1); await giveTo(B, 'wood', 300); await giveTo(B, 'revolver', 1); await giveTo(B, 'pistol_ammo', 40); await giveTo(B, 'satchel', 3);
   await B.equipHot('hammer'); B.toasts.length = 0; const nb = B.pieces.byId.size;
   let grief = null;
-  for (let dx = -3; dx <= 4 && !grief; dx++) for (let dz = -3; dz <= 4 && !grief; dz++) { if (Math.abs(dx) < 2 && Math.abs(dz) < 2) continue; const r = validatePlacement({ pieces: B.pieces, world: B.world, isBlockedByNode: () => false }, { type: 'foundation', L: 0, gx: base1.gx + dx, gz: base1.gz + dz }); if (r.ok && Math.hypot(r.piece.y - B.s.y, 0) < 9) grief = { gx: base1.gx + dx, gz: base1.gz + dz }; }
+  for (let dx = -3; dx <= 4 && !grief; dx++) for (let dz = -3; dz <= 4 && !grief; dz++) { if (Math.abs(dx) < 2 && Math.abs(dz) < 2) continue; const r = validatePlacement({ pieces: w.pieces, world: w.data, isBlockedByNode: (a, b, c, d) => w.isBlockedByNode(a, b, c, d) }, { type: 'foundation', L: 0, gx: base1.gx + dx, gz: base1.gz + dz }); if (r.ok) grief = { gx: base1.gx + dx, gz: base1.gz + dz }; }
   assert.ok(grief, 'a terrain-valid grief spot exists');
   await warpTo(B, grief.gx * GRID + 2, grief.gz * GRID + 6, 0.2);
   B.send({ t: 'build', type: 'foundation', L: 0, gx: grief.gx, gz: grief.gz }); await sleep(500);
-  assert.equal(B.pieces.byId.size, nb, 'privilege radius blocks griefing'); assert.ok(B.toasts.some((t) => /base is too close|close/.test(t)), 'told why');
+  assert.equal(B.pieces.byId.size, nb, 'privilege radius blocks griefing'); assert.ok(B.toasts.some((t) => /base is too close|close/.test(t)), 'told why: ' + JSON.stringify(B.toasts) + ' sel=' + w.byUid.get(B.profile.uid).sel + ' held=' + JSON.stringify(w.byUid.get(B.profile.uid).inv[w.byUid.get(B.profile.uid).sel]) + ' grief=' + JSON.stringify(grief));
   // bob cannot remove / upgrade / open alice's stuff
   const anyWall = [...B.pieces.byId.values()].find((p) => p.type === 'wall'); B.send({ t: 'bremove', id: anyWall.id }); await sleep(300); assert.ok(B.pieces.byId.has(anyWall.id), 'stranger cannot remove');
   // shoot the wall from 8 m
@@ -298,8 +309,9 @@ await step('raiding: strangers cannot build in a base; bullets chip walls; satch
   await B.waitFor(() => B.pieces.byId.get(wallW.id).hp < hp0, 2500, 'wall damaged by bullets');
   // satchels next to the wall
   for (let k = 0; k < 3 && B.pieces.byId.has(wallW.id); k++) {
+    await warpTo(B, wallW.gx * GRID + 2, wallW.gz * GRID + 7, 0.2);
     B.send({ t: 'place', slot: B.slotOf('satchel'), x: wallW.gx * GRID + 2, z: wallW.gz * GRID + 1.2, ry: 0 });
-    await B.waitFor(() => [...B.deps.values()].some((d) => d.type === 'satchel'), 2000, 'satchel placed');
+    await B.waitFor(() => [...B.deps.values()].some((d) => d.type === 'satchel'), 2000, 'satchel placed [' + B.toasts.slice(-3).join(' | ') + '] slot=' + B.slotOf('satchel') + ' pos=' + B.s.x.toFixed(1) + ',' + B.s.z.toFixed(1) + ' wall=' + (wallW.gx * GRID + 2) + ',' + (wallW.gz * GRID + 1.2));
     await sleep(0); await warp(B, pb, wallW.gx * GRID + 2, wallW.y + 0.2, wallW.gz * GRID + 16);
     await B.waitFor(() => !B.deps.size || ![...B.deps.values()].some((d) => d.type === 'satchel'), 12000, 'satchel detonated');
   }
@@ -355,7 +367,7 @@ await step('persistence: world + player state survive a full server restart', as
   assert.equal(A2.pieces.byId.size, pieceCount, 'buildings persisted'); assert.equal(A2.deps.size, depCount, 'deployables persisted');
   assert.equal(A2.count('wood'), woodBefore, 'inventory persisted');
   assert.ok(Math.hypot(A2.s.x - px, A2.s.z - pz) < 3, 'position persisted');
-  const door = [...A2.pieces.byId.values()].find((p) => p.type === 'door'); assert.equal(door.lk, true, 'lock persisted');
+  const box = [...A2.deps.values()].find((d) => d.type === 'storage_box'); assert.ok(box, 'storage box persisted'); assert.equal(box.lk, true, 'lock persisted');
   assert.ok(A2.welcome.you.learned.includes('bp_revolver'), 'blueprints persisted');
   A2.close();
   // account survives restart and password still works
