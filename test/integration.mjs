@@ -22,6 +22,7 @@ const cmd = (bot, text) => bot.send({ t: 'chat', text });
 const give = async (bot, id, n = 1) => { const before = bot.count(id); cmd(bot, `/give ${id} ${n}`); await bot.waitFor(() => bot.count(id) >= before + n || (ITEMS[id].stack === 1 && bot.inv.some((s) => s && s.id === id)), 3000, 'give ' + id); };
 
 const worldOf = () => srv.lobby.worlds.get(srvInfo.id);
+const warpTo = async (bot, x, z, dy = 0.3) => { const w = worldOf(); const pl = w.byUid.get(bot.profile.uid); const y = w.data.height(x, z) + dy; pl.x = x; pl.y = y; pl.z = z; pl.budget = 999; w.emit(pl, { e: 'corr', x, y, z, s: pl.lastSeq, force: true }); await sleep(350); };
 const giveTo = async (bot, id, n = 1) => { const w = worldOf(); const pl = w.byUid.get(bot.profile.uid); w.give(pl, id, n); await sleep(150); };
 console.log('\nEmberwild integration test\n');
 
@@ -211,8 +212,8 @@ await step('farming: plant seed, growth stages, harvest yields crops', async () 
   await give(A, 'corn_seed', 3);
   // find meadow/forest ground nearby
   let spot = null;
-  for (let r = 4; r < 200 && !spot; r += 6) for (let a = 0; a < 6.28 && !spot; a += 0.4) { const x = A.s.x + Math.cos(a) * r, z = A.s.z + Math.sin(a) * r; const b = A.world.biome(x, z); if ((b === 2 || b === 3) && A.world.height(x, z) > 3 && !A.world.landmarkAt(x, z, 20)) spot = { x, z }; }
-  assert.ok(spot, 'farmland'); await A.walkTo(spot.x, spot.z, { stop: 1 });
+  for (let r = 4; r < 900 && !spot; r += 12) for (let a = 0; a < 6.28 && !spot; a += 0.4) { const x = A.s.x + Math.cos(a) * r, z = A.s.z + Math.sin(a) * r; if (Math.abs(x) > 950 || Math.abs(z) > 950) continue; const b = A.world.biome(x, z); if ((b === 2 || b === 3) && A.world.height(x, z) > 3 && A.world.biome(x + 3, z) === b && A.world.biome(x, z + 3) === b && !A.world.landmarkAt(x, z, 20)) spot = { x, z }; }
+  assert.ok(spot, 'farmland'); await warpTo(A, spot.x, spot.z);
   A.send({ t: 'sel', i: 0 }); const si = A.slotOf('corn_seed'); A.send({ t: 'mv_item', a: ['inv', si], b: ['inv', 4] }); await sleep(200); A.send({ t: 'sel', i: 4 }); await sleep(450);
   A.send({ t: 'atk', yaw: A.yaw, pitch: 0, tp: [A.s.x + 1.5, A.s.z] });
   await A.waitFor(() => A.evLog.some((e) => e.e === 'plant+'), 2500, 'planted [' + A.toasts.slice(-3).join(' | ') + '] sel=' + A.sel + ' item=' + JSON.stringify(A.inv[A.sel]));
@@ -238,11 +239,12 @@ await step('combat: revolver hitscan hurts a rival; headshots; armour; ammo/relo
   B.s.onGround = true; B.sendMove(); await sleep(150);
   const hp0 = B.vit[0];
   B.hurts = 0;
-  for (let i = 0; i < 4 && B.vit[0] >= 100; i++) { A.aimAt(B.s.x, B.s.y + 1.1, B.s.z); A.attack(); await sleep(520); }
+  const hpBefore = worldOf().byUid.get(B.profile.uid).hp;
+  for (let i = 0; i < 3; i++) { A.aimAt(B.s.x, B.s.y + 1.1, B.s.z); A.attack(); await sleep(520); }
   const pa = worldOf().byUid.get(A.profile.uid), pb = worldOf().byUid.get(B.profile.uid);
   await B.waitFor(() => B.hurts > 0, 2000, `Bob hurt (A ${A.s.x.toFixed(1)},${A.s.y.toFixed(1)},${A.s.z.toFixed(1)} srvA ${pa.x.toFixed(1)},${pa.y.toFixed(1)},${pa.z.toFixed(1)} sel ${pa.sel} B ${B.s.x.toFixed(1)},${B.s.y.toFixed(1)},${B.s.z.toFixed(1)} srvB ${pb.x.toFixed(1)},${pb.y.toFixed(1)},${pb.z.toFixed(1)} pro ${pb.spawnPro} shots ${A.evLog.filter((e) => e.e === 'shot').slice(-2).map((e) => JSON.stringify(e.en))})`);
   assert.ok(A.hits > 0, 'shooter got hit marker');
-  await B.waitFor(() => B.vit[0] < hp0, 2500, 'Bob hp decreased');
+  await B.waitFor(() => worldOf().byUid.get(B.profile.uid).hp < hpBefore - 20, 2500, 'Bob hp decreased');
   // ammo depleted correctly and dry-fire does nothing
   const ammo = A.inv[A.slotOf('revolver')].ammo; assert.ok(ammo < 6);
 });
@@ -280,7 +282,11 @@ await step('raiding: strangers cannot build in a base; bullets chip walls; satch
   await warp(B, pb, base1.gx * GRID + 14, wallW.y + 0.2, base1.gz * GRID + 14);
   await giveTo(B, 'hammer', 1); await giveTo(B, 'wood', 300); await giveTo(B, 'revolver', 1); await giveTo(B, 'pistol_ammo', 40); await giveTo(B, 'satchel', 3);
   await B.equipHot('hammer'); B.toasts.length = 0; const nb = B.pieces.byId.size;
-  B.send({ t: 'build', type: 'foundation', L: 0, gx: base1.gx + 4, gz: base1.gz + 3 }); await sleep(500);
+  let grief = null;
+  for (let dx = -3; dx <= 4 && !grief; dx++) for (let dz = -3; dz <= 4 && !grief; dz++) { if (Math.abs(dx) < 2 && Math.abs(dz) < 2) continue; const r = validatePlacement({ pieces: B.pieces, world: B.world, isBlockedByNode: () => false }, { type: 'foundation', L: 0, gx: base1.gx + dx, gz: base1.gz + dz }); if (r.ok && Math.hypot(r.piece.y - B.s.y, 0) < 9) grief = { gx: base1.gx + dx, gz: base1.gz + dz }; }
+  assert.ok(grief, 'a terrain-valid grief spot exists');
+  await warpTo(B, grief.gx * GRID + 2, grief.gz * GRID + 6, 0.2);
+  B.send({ t: 'build', type: 'foundation', L: 0, gx: grief.gx, gz: grief.gz }); await sleep(500);
   assert.equal(B.pieces.byId.size, nb, 'privilege radius blocks griefing'); assert.ok(B.toasts.some((t) => /base is too close|close/.test(t)), 'told why');
   // bob cannot remove / upgrade / open alice's stuff
   const anyWall = [...B.pieces.byId.values()].find((p) => p.type === 'wall'); B.send({ t: 'bremove', id: anyWall.id }); await sleep(300); assert.ok(B.pieces.byId.has(anyWall.id), 'stranger cannot remove');

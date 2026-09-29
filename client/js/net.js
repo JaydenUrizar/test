@@ -1,4 +1,8 @@
 // WebSocket transport with automatic reconnect, ping/RTT measurement and message queueing.
+// QA: append ?lag=200 to the page URL to simulate 200 ms of round-trip latency (and ?loss=0.05 for 5% packet loss on input).
+const QS = new URLSearchParams(location.search);
+const LAG = Math.min(1500, Math.max(0, +QS.get('lag') || 0));
+const LOSS = Math.min(0.5, Math.max(0, +QS.get('loss') || 0));
 export class Net {
   constructor(handlers) {
     this.h = handlers;          // { message(m), status(state, info) }
@@ -16,7 +20,8 @@ export class Net {
     const ws = new WebSocket(`${proto}://${location.host}/ws`);
     this.ws = ws; this.joined = false;
     ws.onopen = () => { this.connected = true; ws.send(JSON.stringify(this.joinMsg)); };
-    ws.onmessage = (ev) => {
+    ws.onmessage = (ev) => { if (LAG) setTimeout(() => this.onRaw(ev), LAG / 2); else this.onRaw(ev); };
+    this.onRaw = (ev) => {
       this.lastRx = performance.now();
       let m; try { m = JSON.parse(ev.data); } catch { return; }
       if (m.t === 'joined') { this.joined = true; this.attempt = 0; this.h.status(this.reconnecting ? 'reconnected' : 'joined'); this.reconnecting = false; if (this._first) { this._first.resolve(m); this._first = null; } this.startPing(); return; }
@@ -42,7 +47,12 @@ export class Net {
     ping(); this.pingTimer = setInterval(ping, 2000);
   }
   gotPong(ts) { const r = performance.now() - ts; this.rtt = this.rtt * 0.6 + r * 0.4; }
-  send(o) { if (this.ws && this.ws.readyState === 1 && this.joined) this.ws.send(JSON.stringify(o)); }
+  send(o) {
+    if (!(this.ws && this.ws.readyState === 1 && this.joined)) return;
+    if (LOSS && o.t === 'mv' && Math.random() < LOSS) return;
+    const data = JSON.stringify(o);
+    if (LAG) setTimeout(() => { if (this.ws && this.ws.readyState === 1) this.ws.send(data); }, LAG / 2); else this.ws.send(data);
+  }
   close() { this.closedByUs = true; clearTimeout(this.timer); clearInterval(this.pingTimer); try { this.ws && this.ws.close(); } catch {} }
   silentFor() { return performance.now() - this.lastRx; }
 }

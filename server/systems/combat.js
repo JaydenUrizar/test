@@ -423,10 +423,12 @@ Object.assign(GameWorld.prototype, {
     for (const q of this.players.values()) {
       if (q.dead) continue;
       const d = Math.hypot(q.x - x, q.y + 1 - y, q.z - z);
-      if (d < radius + 1.5 && (this.rules.pvp || q === byPlayer || true)) {
-        if (q !== byPlayer && byPlayer && !this.rules.pvp) continue;
-        this.hurtPlayer(q, 130 * (1 - d / (radius + 1.5)), { kind: 'explosion', byPlayer, weapon: 'satchel' });
+      if (d >= radius + 1.5) continue;
+      if (byPlayer && q !== byPlayer) {
+        if (!this.rules.pvp) continue;
+        if (!this.rules.friendlyFire && this.sameTeam(byPlayer.uid, q.uid)) continue;
       }
+      this.hurtPlayer(q, 130 * (1 - d / (radius + 1.5)), { kind: 'explosion', byPlayer, weapon: 'satchel' });
     }
     for (const m of this.mobs.values()) if (!m.dead && Math.hypot(m.x - x, m.z - z) < radius + 1) this.hurtMob(m, 150, byPlayer, false, 'satchel');
   },

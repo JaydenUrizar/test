@@ -95,10 +95,17 @@ Object.assign(GameWorld.prototype, {
         }
       }
       if (speed > 0) {
-        const s = { x: m.x + vx * speed * dt, z: m.z + vz * speed * dt, y: m.y };
+        let mvx = vx, mvz = vz;
+        if (m.sideT > 0) { m.sideT -= dt; mvx = -vz * m.sideDir * 0.9 + vx * 0.3; mvz = vx * m.sideDir * 0.9 + vz * 0.3; } // sidestep around obstacles
+        const s = { x: m.x + mvx * speed * dt, z: m.z + mvz * speed * dt, y: m.y };
         const nh = this.data.height(s.x, s.z);
         if (nh > WATER_LEVEL + 0.3) {
           resolveHorizontal(this.env, s, S.r * 0.8);
+          const moved = Math.hypot(s.x - m.x, s.z - m.z);
+          if (moved < speed * dt * 0.25) {
+            m.stuck = (m.stuck || 0) + dt;
+            if (m.stuck > 0.45 && !(m.sideT > 0)) { m.sideT = 0.9; m.sideDir = Math.random() < 0.5 ? -1 : 1; m.stuck = 0; }
+          } else m.stuck = 0;
           m.x = s.x; m.z = s.z;
         } else { m.st = 0; m.t = 0; }
       }
