@@ -409,6 +409,10 @@ export class Game {
       }
     }
     this.world.update(dt, this.camera, this.hour, this.weather, this.locked);
+    // the local player's torch lights the world (first and third person)
+    { const held = this.selItem(); const on = !!held && held.id === 'torch' && !this.dead;
+      if (!this.selfTorch) { this.selfTorch = new THREE.PointLight('#ffb060', 0, 26, 1.6); this.scene.add(this.selfTorch); }
+      this.selfTorch.intensity = on ? 2.3 + Math.random() * 0.35 : 0; this.selfTorch.position.set(this.me.x + Math.sin(this.controls.yaw + 0.6) * -0.5, this.me.y + 1.5, this.me.z + Math.cos(this.controls.yaw + 0.6) * -0.5); }
     this.fx.update(dt);
     // storm lightning
     if (this.weather === 'storm') { this.thunderT -= dt; if (this.thunderT <= 0) { this.thunderT = 6 + Math.random() * 16; this.flashT = 0.35; setTimeout(() => audio.sfx('thunder', null, 0.9), 400 + Math.random() * 1500); } }

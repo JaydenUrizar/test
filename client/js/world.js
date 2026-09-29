@@ -17,10 +17,10 @@ const hash = (x, z) => { const s = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
 
 const SKY_KEYS = [
   // e = sun elevation sin; zenith, horizon, sun colour, sun intensity, hemi intensity, hemi sky, hemi ground
-  { e: -1, z: '#03050f', h: '#0b1226', sun: '#7f98ff', si: 0.28, hi: 0.32, hs: '#3a4a8a', hg: '#151a26' },
-  { e: -0.18, z: '#050a1e', h: '#141c38', sun: '#7f98ff', si: 0.3, hi: 0.34, hs: '#3a4a8a', hg: '#151a26' },
-  { e: -0.04, z: '#2a2a5a', h: '#c8607a', sun: '#ff8a5a', si: 0.7, hi: 0.5, hs: '#7a6a9a', hg: '#3a3040' },
-  { e: 0.08, z: '#4a6ab0', h: '#ffb37a', sun: '#ffb070', si: 1.7, hi: 0.72, hs: '#9ab0d8', hg: '#5a4a3a' },
+  { e: -1, z: '#060d24', h: '#14243f', sun: '#9db4ff', si: 0.95, hi: 0.98, hs: '#6a7cc0', hg: '#2e3a56' },
+  { e: -0.24, z: '#0b1636', h: '#1c2e58', sun: '#9db4ff', si: 0.95, hi: 0.98, hs: '#6a7cc0', hg: '#2e3a56' },
+  { e: -0.07, z: '#2c2f68', h: '#c8607a', sun: '#ff9a6a', si: 0.95, hi: 0.72, hs: '#8a78b0', hg: '#4a3a4c' },
+  { e: 0.07, z: '#4a6ab0', h: '#ffb37a', sun: '#ffb070', si: 1.7, hi: 0.76, hs: '#9ab0d8', hg: '#5a4a3a' },
   { e: 0.3, z: '#4a8ed8', h: '#bfe0f5', sun: '#fff0d6', si: 2.5, hi: 0.95, hs: '#b8d8f5', hg: '#6f6a55' },
   { e: 1, z: '#3f86d6', h: '#c4e4f8', sun: '#fff6e6', si: 2.8, hi: 1.05, hs: '#c0e0fa', hg: '#7a7660' },
 ];
@@ -60,9 +60,11 @@ void main(){
   col += vec3(0.85,0.9,1.0) * (smoothstep(0.9993, 0.9998, md)) * uNight * (1.0 - uCover*0.7);
   col += vec3(0.5,0.6,1.0) * pow(md, 30.) * 0.08 * uNight;
   if (uNight > 0.02 && d.y > 0.) {
-    vec2 sp = d.xz / (d.y + 0.25) * 60.;
-    float s = h21(floor(sp)); float tw = 0.6 + 0.4*sin(uTime*2.0 + s*40.);
-    col += vec3(1.,.95,.85) * step(0.985, s) * tw * uNight * smoothstep(0.0,0.2,d.y) * (1.0-uCover);
+    vec2 sp = d.xz / (d.y + 0.25) * 70.;
+    vec2 cell = floor(sp); float s = h21(cell); vec2 jit = (vec2(h21(cell + 1.7), h21(cell + 3.1)) - 0.5) * 0.6;
+    float star = step(0.965, s) * smoothstep(0.12, 0.0, length(fract(sp) - 0.5 - jit));
+    float tw = 0.65 + 0.35*sin(uTime*2.0 + s*40.);
+    col += vec3(1.,.95,.85) * star * (0.6 + 1.6*h21(cell + 9.1)) * tw * uNight * smoothstep(0.0,0.2,d.y) * (1.0-uCover);
   }
   if (d.y > -0.02) {
     vec2 uv = d.xz / (d.y + 0.22) * 1.4 + vec2(uTime*0.012, uTime*0.004);
@@ -330,13 +332,14 @@ export class WorldView {
       if (d > rc + 0.4) continue;
       want.add(this.chunkKey(cx, cz));
       const ch = this.chunks.get(this.chunkKey(cx, cz));
-      const lod = d < 3.2 ? 0 : 1;
+      const lod = d < 4.6 ? 0 : 1;
       if (!ch) { if (!this.queue.some((e) => e.cx === cx && e.cz === cz)) this.queue.push({ cx, cz, lod, d }); }
       else if (ch.lod !== lod && !this.queue.some((e) => e.cx === cx && e.cz === cz && e.rebuild)) this.queue.push({ cx, cz, lod, d, rebuild: true });
     }
     this.queue.sort((a, b) => a.d - b.d);
-    let budget = focus ? 2 : 4, t0 = performance.now();
-    while (this.queue.length && budget > 0 && performance.now() - t0 < 9) {
+    const initial = this.chunks.size < 60;   // first load: build aggressively so the world appears quickly
+    let budget = initial ? 14 : focus ? 2 : 4, t0 = performance.now();
+    while (this.queue.length && budget > 0 && performance.now() - t0 < (initial ? 34 : 9)) {
       const job = this.queue.shift();
       const key = this.chunkKey(job.cx, job.cz);
       if (!want.has(key)) continue;
@@ -349,7 +352,8 @@ export class WorldView {
     for (const [key, ch] of this.chunks) {
       if (!want.has(key)) { this.disposeChunk(ch); this.chunks.delete(key); continue; }
       const d = Math.hypot(ch.ox + CH / 2 - px, ch.oz + CH / 2 - pz);
-      if (d < Math.min(view, 300) + CH * 0.7) { if (!ch.nodes) this.ensureNodes(ch); for (const im of ch.nodes) im.castShadow = d < 110 && (im.geometry === nodeGeometry('rock') || true); }
+      // resource nodes only on full-detail chunks (coarse LOD meshes deviate from true height on steep slopes)
+      if (ch.lod === 0 && d < Math.min(view, 330) + CH * 0.5) { if (!ch.nodes) this.ensureNodes(ch); for (const im of ch.nodes) im.castShadow = d < 110; }
       else if (ch.nodes) this.dropNodes(ch);
     }
     // landmarks
@@ -402,7 +406,7 @@ export class WorldView {
     const li = (e > -0.05 ? k.si : k.si) * (1 - w.dark * 0.7);
     this.sun.color.copy(k.sun);
     this.sun.intensity = li * Math.min(1, Math.max(0.15, (e + 0.1) * 4 + (e < -0.05 ? 0.4 : 0)));
-    if (this.sun.intensity < 0.3) this.sun.intensity = 0.3;
+    if (this.sun.intensity < 0.45) this.sun.intensity = 0.45;
     this.hemi.color.copy(k.hs).lerp(gray, cover * 0.4); this.hemi.groundColor.copy(k.hg);
     this.hemi.intensity = k.hi * (1 - w.dark * 0.35);
     // shadow follow (snap to texel)

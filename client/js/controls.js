@@ -55,6 +55,7 @@ export class Controls {
     this.hand = hand;
     const arm = new THREE.Group(); arm.add(sleeve); arm.add(hand); this.arm = arm;
     const rig = new THREE.Group(); rig.add(arm); this.rig = rig; vm.add(rig);
+    this.vmFill = new THREE.PointLight('#fff1dd', 0.55, 3.2, 2); this.vmFill.position.set(0.1, 0.55, -0.25); vm.add(this.vmFill); // keeps held items readable at night
     vm.traverse((o) => { if (o.isMesh) o.castShadow = false; });
     this.itemMount = new THREE.Group(); this.itemMount.scale.setScalar(0.62); rig.add(this.itemMount);
     arm.scale.setScalar(0.72);
@@ -246,17 +247,18 @@ export class Controls {
     this.vmDrawIn = Math.max(0, (this.vmDrawIn || 0) - dt * 4);
     const kind = it ? holdKindOf(it.id) : 'none';
     const rig = this.rig, item = this.itemMount;
+    item.scale.setScalar(kind === 'gun' ? 0.78 : kind === 'bow' ? 0.8 : 0.62);
     const bob = this.bobAmt, ph = this.bobPhase;
     let px = 0.3, py = -0.3, pz = -0.52, rx = 0, ry = 0, rz = 0;
     const t = this.vmT;
     px += Math.cos(ph) * 0.012 * bob; py += Math.abs(Math.sin(ph)) * 0.014 * bob - Math.sin(t * 1.6) * 0.003;
     if (kind === 'gun') {
       const ads = this.aim = this.aim + ((aiming ? 1 : 0) - this.aim) * Math.min(1, dt * 12);
-      px = 0.22 + (0 - 0.22) * ads; py = -0.22 + (-0.145 + 0.22) * ads; pz = -0.42 + (-0.3 + 0.42) * ads;
+      px = 0.2 + (0 - 0.2) * ads; py = -0.2 + (-0.135 + 0.2) * ads; pz = -0.46 + (-0.34 + 0.46) * ads;
       pz += this.vmKick * 0.07; rx = this.vmKick * 0.09; py -= this.vmDrawIn * 0.25;
       if (this.vmReload > 0) { const p = 1 - this.vmReload / this.vmReloadDur; const e = Math.sin(p * Math.PI); py -= e * 0.16; rx -= e * 0.6; rz += e * 0.5; px += e * 0.02; }
       item.rotation.set(Math.PI / 2 * 0 , 0, 0); item.position.set(0, 0.03, -0.02);
-      rig.rotation.set(rx, 0, rz); rig.position.set(px, py, pz);
+      rig.rotation.set(rx, 0.05 * (1 - ads), rz); rig.position.set(px, py, pz);
       this.arm.position.set(0.0, -0.02, 0.1); this.arm.rotation.set(0.05, 0, 0);
       this.hand.position.set(0.0, -0.06, 0.06);
       this.sleeve.position.set(0.03, -0.1, 0.24); this.sleeve.rotation.set(0.35, 0, 0);
@@ -291,7 +293,7 @@ export class Controls {
     // torch light & flame
     if (it && it.id === 'torch') {
       if (!this.torchLight) { this.torchLight = new THREE.PointLight('#ffb060', 2, 24, 1.6); this.rig.add(this.torchLight); this.torchLight.position.set(0.0, 0.5, -0.2); }
-      this.torchLight.intensity = 2.1 + Math.random() * 0.4; this.torchLight.visible = !this.thirdPerson;
+      this.torchLight.intensity = 0; this.torchLight.visible = false;
       if (this.vmItem) this.vmItem.traverse((o) => { if (o.userData && o.userData.flame) o.scale.setScalar(0.9 + Math.random() * 0.4); });
     } else if (this.torchLight) this.torchLight.visible = false;
     // muzzle position for viewmodel

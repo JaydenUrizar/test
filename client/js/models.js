@@ -157,12 +157,12 @@ export function setEquipment(char, equip) {
   const [head, chest, legs, feet] = equip || [];
   const cl = (id) => id && id.startsWith('cloth');
   // shirt/pants recolour
-  P.torso.material = mat(cl(chest) ? '#e6dcc0' : chest ? '#8f99a5' : CLOTH[a.shirt % CLOTH.length], chest && !cl(chest) ? { metalness: 0.5, roughness: 0.45 } : {});
-  const legMat = mat(cl(legs) ? '#d8cfae' : legs ? '#8f99a5' : CLOTH[a.pants % CLOTH.length], legs && !cl(legs) ? { metalness: 0.5, roughness: 0.45 } : {});
-  for (const l of [P.legL, P.legR]) { l.children[0].material = legMat; l.userData.boot.material = mat(feet ? (cl(feet) ? '#d8cfae' : '#8f99a5') : '#4a3a2c', feet && !cl(feet) ? { metalness: 0.5, roughness: 0.45 } : {}); }
-  for (const arm of [P.armL, P.armR]) arm.children[0].material = mat(cl(chest) ? '#e6dcc0' : chest ? '#8f99a5' : CLOTH[a.shirt % CLOTH.length], chest && !cl(chest) ? { metalness: 0.5, roughness: 0.45 } : {});
+  P.torso.material = mat(cl(chest) ? '#e6dcc0' : chest ? '#8f99a5' : CLOTH[a.shirt % CLOTH.length], chest && !cl(chest) ? { metalness: 0.14, roughness: 0.45 } : {});
+  const legMat = mat(cl(legs) ? '#d8cfae' : legs ? '#8f99a5' : CLOTH[a.pants % CLOTH.length], legs && !cl(legs) ? { metalness: 0.14, roughness: 0.45 } : {});
+  for (const l of [P.legL, P.legR]) { l.children[0].material = legMat; l.userData.boot.material = mat(feet ? (cl(feet) ? '#d8cfae' : '#8f99a5') : '#4a3a2c', feet && !cl(feet) ? { metalness: 0.14, roughness: 0.45 } : {}); }
+  for (const arm of [P.armL, P.armR]) arm.children[0].material = mat(cl(chest) ? '#e6dcc0' : chest ? '#8f99a5' : CLOTH[a.shirt % CLOTH.length], chest && !cl(chest) ? { metalness: 0.14, roughness: 0.45 } : {});
   if (chest && !cl(chest)) {
-    P.armor.add(box(0.66, 0.5, 0.44, '#aab3bd', 0, 1.17, 0, { metalness: 0.6, roughness: 0.4 }));
+    P.armor.add(box(0.66, 0.5, 0.44, '#aab3bd', 0, 1.17, 0, { metalness: 0.14, roughness: 0.4 }));
     for (const sx of [-1, 1]) P.armor.add(sph(0.14, '#aab3bd', sx * 0.36, 1.46, 0, 1, 0.7, 1, 1));
   }
   if (head) {
@@ -190,10 +190,52 @@ export function buildHeld(id) {
     case 'stone_spear': g.add(box(0.035, 1.2, 0.035, wood, 0, 0.35, 0)); { const c = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.22, 4), mat('#9aa0a6')); c.position.y = 1.05; g.add(c); } break;
     case 'machete': g.add(box(0.04, 0.16, 0.04, dark, 0, 0.02, 0)); g.add(box(0.03, 0.5, 0.09, steel, 0, 0.36, 0)); break;
     case 'bow': { const a = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.018, 4, 12, Math.PI), mat(wood)); a.rotation.z = -Math.PI / 2; a.rotation.y = Math.PI / 2; a.position.set(0, 0.2, 0); g.add(a); const s = box(0.006, 0.8, 0.006, '#e8e0c8', 0.0, 0.2, 0.0); g.add(s); g.userData.string = s; break; }
-    case 'revolver': g.add(box(0.05, 0.1, 0.24, '#b8bcc4', 0, 0.06, -0.12, { metalness: 0.6 })); g.add(box(0.045, 0.16, 0.06, '#5a3a22', 0, -0.02, 0.02)); g.add(cyl(0.05, 0.05, 0.08, '#9aa0a6', 6, 0, 0.06, -0.1)); g.children[g.children.length - 1].rotation.x = Math.PI / 2; g.userData.muzzle = [0, 0.08, -0.27]; break;
-    case 'smg': g.add(box(0.06, 0.13, 0.42, '#5c6470', 0, 0.06, -0.16, { metalness: 0.5 })); g.add(box(0.05, 0.22, 0.07, '#2a2f38', 0, -0.08, -0.12)); g.add(box(0.05, 0.14, 0.06, '#2a2f38', 0, -0.05, 0.05)); g.add(box(0.04, 0.05, 0.16, '#2a2f38', 0, 0.06, -0.44)); g.userData.muzzle = [0, 0.06, -0.54]; break;
-    case 'shotgun': g.add(box(0.06, 0.09, 0.62, '#4a4f56', 0, 0.06, -0.28, { metalness: 0.5 })); g.add(box(0.07, 0.1, 0.24, '#8a5a3a', 0, 0.0, 0.06)); g.add(box(0.075, 0.07, 0.2, '#6a4429', 0, 0.0, -0.3)); g.userData.muzzle = [0, 0.06, -0.6]; break;
-    case 'rifle': g.add(box(0.05, 0.08, 0.86, '#4a4f56', 0, 0.07, -0.34, { metalness: 0.5 })); g.add(box(0.07, 0.12, 0.34, '#6b5b45', 0, 0.0, 0.1)); g.add(cyl(0.028, 0.028, 0.22, '#2a2f38', 8, 0, 0.17, -0.2)); g.children[g.children.length - 1].rotation.x = Math.PI / 2; g.userData.muzzle = [0, 0.07, -0.78]; break;
+    case 'revolver': {
+      const steel = '#b9c0c9', dsteel = '#7d8792', wood2 = '#8a5a30';
+      g.add(box(0.042, 0.085, 0.2, steel, 0, 0.055, -0.1));                       // frame
+      const barrel = cyl(0.017, 0.017, 0.2, dsteel, 8, 0, 0.075, -0.27); barrel.rotation.x = Math.PI / 2; g.add(barrel);
+      const drum = cyl(0.036, 0.036, 0.06, '#9aa3ad', 10, 0, 0.055, -0.12); drum.rotation.x = Math.PI / 2; g.add(drum);
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; const h = cyl(0.008, 0.008, 0.062, '#2b3038', 6, Math.cos(a) * 0.022, 0.055 + Math.sin(a) * 0.022, -0.12); h.rotation.x = Math.PI / 2; g.add(h); }
+      const grip = box(0.04, 0.12, 0.06, wood2, 0, -0.03, 0.035); grip.rotation.x = -0.28; g.add(grip);
+      g.add(box(0.012, 0.03, 0.03, dsteel, 0, 0.115, -0.01));                     // hammer
+      g.add(box(0.01, 0.014, 0.014, '#f2c94c', 0, 0.098, -0.365));                // front sight
+      g.add(box(0.012, 0.05, 0.012, dsteel, 0, 0.0, -0.04));                      // trigger guard
+      g.userData.muzzle = [0, 0.075, -0.38]; break;
+    }
+    case 'smg': {
+      const body = '#7c8794', dark = '#3d454f';
+      g.add(box(0.055, 0.1, 0.34, body, 0, 0.06, -0.15));                          // receiver
+      g.add(box(0.05, 0.03, 0.16, dark, 0, 0.125, -0.13));                         // top rail
+      const shroud = cyl(0.03, 0.03, 0.2, dark, 8, 0, 0.07, -0.42); shroud.rotation.x = Math.PI / 2; g.add(shroud);
+      for (let i = 0; i < 4; i++) g.add(box(0.062, 0.012, 0.02, '#1f2329', 0, 0.07, -0.34 - i * 0.045));
+      const mag = box(0.038, 0.19, 0.055, '#3a3f47', 0, -0.09, -0.11); mag.rotation.x = 0.08; g.add(mag);
+      const grip = box(0.04, 0.11, 0.05, '#4a4038', 0, -0.03, 0.02); grip.rotation.x = -0.25; g.add(grip);
+      g.add(box(0.03, 0.03, 0.14, dark, 0, 0.06, 0.16));                           // stock
+      g.add(box(0.012, 0.03, 0.012, '#ff8a3c', 0, 0.155, -0.24));                  // sight
+      g.userData.muzzle = [0, 0.07, -0.53]; break;
+    }
+    case 'shotgun': {
+      const steel = '#8b95a1', wood2 = '#9a6a3a', dwood = '#7a4f28';
+      const b1 = cyl(0.022, 0.022, 0.62, steel, 8, 0, 0.075, -0.33); b1.rotation.x = Math.PI / 2; g.add(b1);
+      const b2 = cyl(0.016, 0.016, 0.5, '#6f7984', 8, 0, 0.032, -0.28); b2.rotation.x = Math.PI / 2; g.add(b2);   // magazine tube
+      g.add(box(0.05, 0.085, 0.16, '#6b7480', 0, 0.06, -0.02));                    // receiver
+      g.add(box(0.058, 0.055, 0.2, wood2, 0, 0.035, -0.26));                       // pump forend
+      const stock = box(0.05, 0.085, 0.17, dwood, 0, 0.02, 0.12); stock.rotation.x = 0.12; g.add(stock);
+      g.add(box(0.012, 0.014, 0.014, '#f2c94c', 0, 0.104, -0.62));
+      g.userData.muzzle = [0, 0.075, -0.65]; break;
+    }
+    case 'rifle': {
+      const steel = '#98a2ae', wood2 = '#a26f3a', dwood = '#7a4f28';
+      const bar = cyl(0.016, 0.016, 0.7, steel, 8, 0, 0.06, -0.42); bar.rotation.x = Math.PI / 2; g.add(bar);
+      g.add(box(0.05, 0.075, 0.24, '#6f7984', 0, 0.055, -0.05));                   // receiver
+      g.add(box(0.045, 0.06, 0.34, wood2, 0, 0.02, -0.34));                        // fore-stock
+      const stock = box(0.05, 0.1, 0.19, dwood, 0, 0.0, 0.15); stock.rotation.x = 0.1; g.add(stock);
+      const scope = cyl(0.026, 0.026, 0.24, '#2b3038', 10, 0, 0.13, -0.08); scope.rotation.x = Math.PI / 2; g.add(scope);
+      const lens = cyl(0.028, 0.028, 0.012, '#5cc0e8', 10, 0, 0.13, -0.205); lens.rotation.x = Math.PI / 2; g.add(lens);
+      g.add(box(0.014, 0.05, 0.02, '#2b3038', 0, 0.095, -0.03)); g.add(box(0.014, 0.05, 0.02, '#2b3038', 0, 0.095, -0.15));
+      const bolt = box(0.014, 0.014, 0.05, steel, 0.04, 0.07, 0.02); g.add(bolt);
+      g.userData.muzzle = [0, 0.06, -0.78]; break;
+    }
     default: {
       g.add(box(0.14, 0.14, 0.14, '#c9a36b', 0, 0.05, 0));
     }
@@ -303,7 +345,7 @@ const LM_MATS = {
   wood: () => new THREE.MeshStandardMaterial({ map: canvasTex('wood'), roughness: 0.9, flatShading: true, color: '#b08a60' }),
   brick: () => new THREE.MeshStandardMaterial({ map: canvasTex('brick'), roughness: 0.95, flatShading: true }),
   concrete: () => new THREE.MeshStandardMaterial({ map: canvasTex('concrete'), roughness: 0.95, flatShading: true }),
-  metal: () => new THREE.MeshStandardMaterial({ map: canvasTex('metal'), roughness: 0.55, metalness: 0.4, flatShading: true, color: '#b9c3cc' }),
+  metal: () => new THREE.MeshStandardMaterial({ map: canvasTex('metal'), roughness: 0.55, metalness: 0.14, flatShading: true, color: '#b9c3cc' }),
   roof: () => new THREE.MeshStandardMaterial({ color: '#5b4a3c', roughness: 0.9, flatShading: true }),
   floor: () => new THREE.MeshStandardMaterial({ color: '#7a6a58', roughness: 1, flatShading: true }),
   white: () => new THREE.MeshStandardMaterial({ color: '#efece4', roughness: 0.8, flatShading: true }),
@@ -341,7 +383,7 @@ export function buildLandmarkMeshes(lm) {
 
 const tierMats = [];
 function tierMat(t) {
-  return tierMats[t] || (tierMats[t] = new THREE.MeshStandardMaterial({ map: canvasTex(['wood', 'stone', 'metal'][t]), roughness: t === 2 ? 0.5 : 0.9, metalness: t === 2 ? 0.45 : 0, flatShading: true }));
+  return tierMats[t] || (tierMats[t] = new THREE.MeshStandardMaterial({ map: canvasTex(['wood', 'stone', 'metal'][t]), roughness: t === 2 ? 0.5 : 0.9, metalness: t === 2 ? 0.16 : 0, flatShading: true }));
 }
 export function tierMaterial(t) { return tierMat(t); }
 
@@ -418,12 +460,12 @@ export function buildDeployable(type) {
       const f = new THREE.Group(); f.name = 'fire'; f.visible = false; f.add(sph(0.16, '#ff7a1c', 0, 0.45, -0.46, 1, 1.3, 0.5, 1)); g.add(f); break;
     }
     case 'workbench_1': g.add(box(1.7, 0.12, 0.85, wood, 0, 0.9, 0)); for (const [x, z] of [[-0.75, -0.35], [0.75, -0.35], [-0.75, 0.35], [0.75, 0.35]]) g.add(box(0.12, 0.9, 0.12, dark, x, 0.45, z)); g.add(box(0.3, 0.08, 0.5, '#c9a36b', -0.4, 1.0, 0)); g.add(box(0.5, 0.12, 0.12, '#9aa0a6', 0.35, 1.0, 0.1)); break;
-    case 'workbench_2': g.add(box(1.9, 0.14, 0.95, '#6f7a86', 0, 0.95, 0, { metalness: 0.5 })); for (const [x, z] of [[-0.85, -0.4], [0.85, -0.4], [-0.85, 0.4], [0.85, 0.4]]) g.add(box(0.14, 0.95, 0.14, '#3f4750', x, 0.47, z)); g.add(box(0.4, 0.1, 0.4, '#d9b84a', -0.5, 1.07, 0)); g.add(box(1.7, 0.6, 0.06, '#4a5560', 0, 1.4, -0.44)); g.add(box(0.5, 0.25, 0.04, '#7fd6ff', 0.4, 1.4, -0.4, { emissive: '#3aa6e0', emissiveIntensity: 0.8 })); break;
+    case 'workbench_2': g.add(box(1.9, 0.14, 0.95, '#6f7a86', 0, 0.95, 0, { metalness: 0.14 })); for (const [x, z] of [[-0.85, -0.4], [0.85, -0.4], [-0.85, 0.4], [0.85, 0.4]]) g.add(box(0.14, 0.95, 0.14, '#3f4750', x, 0.47, z)); g.add(box(0.4, 0.1, 0.4, '#d9b84a', -0.5, 1.07, 0)); g.add(box(1.7, 0.6, 0.06, '#4a5560', 0, 1.4, -0.44)); g.add(box(0.5, 0.25, 0.04, '#7fd6ff', 0.4, 1.4, -0.4, { emissive: '#3aa6e0', emissiveIntensity: 0.8 })); break;
     case 'sleeping_bag': g.add(box(0.7, 0.14, 1.9, '#d6743a', 0, 0.09, 0)); g.add(box(0.5, 0.1, 0.4, '#f0e6d2', 0, 0.18, -0.65)); g.add(box(0.72, 0.16, 0.5, '#b95a28', 0, 0.1, 0.55)); break;
     case 'storage_box': g.add(box(0.95, 0.6, 0.65, wood, 0, 0.3, 0)); g.add(box(1.0, 0.1, 0.7, dark, 0, 0.62, 0)); g.add(box(0.15, 0.12, 0.05, '#d9b84a', 0, 0.5, -0.34)); { const lid = g.children[1]; lid.name = 'lid'; } break;
     case 'large_box': g.add(box(1.6, 0.85, 0.85, '#8a5a3a', 0, 0.42, 0)); g.add(box(1.66, 0.14, 0.9, '#4a3220', 0, 0.9, 0)); g.add(box(0.2, 0.16, 0.06, '#d9b84a', 0, 0.7, -0.45)); for (const x of [-0.7, 0.7]) g.add(box(0.1, 0.9, 0.9, '#3a2a1a', x, 0.45, 0)); break;
     case 'spike_barricade': for (let i = 0; i < 5; i++) { const s = new THREE.Mesh(new THREE.ConeGeometry(0.09, 1.2, 5), mat(wood)); s.position.set((i - 2) * 0.32, 0.6, ((i % 2) - 0.5) * 0.2); s.rotation.z = (i - 2) * 0.12; s.castShadow = true; g.add(s); } g.add(box(1.6, 0.1, 0.1, dark, 0, 0.25, 0)); break;
-    case 'turret': g.add(cyl(0.3, 0.4, 0.5, '#4a525c', 8, 0, 0.25, 0)); { const head = new THREE.Group(); head.name = 'head'; head.position.y = 0.8; head.add(box(0.5, 0.36, 0.5, '#5c6470', 0, 0, 0, { metalness: 0.5 })); head.add(box(0.1, 0.1, 0.6, '#2a2f38', 0, 0.02, -0.5)); head.add(box(0.08, 0.08, 0.04, '#ff3030', 0, 0.16, -0.24, { emissive: '#ff2020', emissiveIntensity: 1 })); g.add(head); } break;
+    case 'turret': g.add(cyl(0.3, 0.4, 0.5, '#4a525c', 8, 0, 0.25, 0)); { const head = new THREE.Group(); head.name = 'head'; head.position.y = 0.8; head.add(box(0.5, 0.36, 0.5, '#5c6470', 0, 0, 0, { metalness: 0.14 })); head.add(box(0.1, 0.1, 0.6, '#2a2f38', 0, 0.02, -0.5)); head.add(box(0.08, 0.08, 0.04, '#ff3030', 0, 0.16, -0.24, { emissive: '#ff2020', emissiveIntensity: 1 })); g.add(head); } break;
     case 'satchel': g.add(box(0.36, 0.28, 0.16, '#7a6a4a', 0, 0.16, 0)); g.add(box(0.1, 0.1, 0.05, '#d94b3a', 0, 0.2, -0.1, { emissive: '#ff2020', emissiveIntensity: 1 })); g.add(box(0.03, 0.2, 0.03, '#222', 0.1, 0.36, 0)); break;
     case 'loot_bag': g.add(sph(0.36, '#7a5a3a', 0, 0.28, 0, 1.1, 0.9, 1, 1)); g.add(box(0.3, 0.08, 0.3, '#4a3220', 0, 0.55, 0)); g.add(sph(0.08, '#f2c94c', 0, 0.62, 0, 1, 1, 1, 0)); break;
     default: g.add(box(0.5, 0.5, 0.5, '#f0f', 0, 0.25, 0));
