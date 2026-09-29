@@ -103,11 +103,14 @@ await step('craft: hatchet → hammer → campfire → workbench (queue, timing,
 function findSpot(bot) {
   const env = { pieces: bot.pieces, world: bot.world, isBlockedByNode: (x0, z0, x1, z1) => bot.world.nodesNear((x0 + x1) / 2, (z0 + z1) / 2, 6).some((n) => NODES[n.type].r > 0 && !bot.depleted.has(n.id) && n.x > x0 - 1.5 && n.x < x1 + 1.5 && n.z > z0 - 1.5 && n.z < z1 + 1.5) };
   const gx0 = Math.floor(bot.s.x / GRID), gz0 = Math.floor(bot.s.z / GRID);
-  for (let r = 1; r < 14; r++) for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
+  for (let r = 1; r < 30; r++) for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) {
     if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
     const a = validatePlacement(env, { type: 'foundation', L: 0, gx: gx0 + dx, gz: gz0 + dz });
     const b = validatePlacement(env, { type: 'foundation', L: 0, gx: gx0 + dx + 1, gz: gz0 + dz });
-    if (a.ok && b.ok && a.piece.y === b.piece.y) return { gx: gx0 + dx, gz: gz0 + dz };
+    // keep the whole yard (incl. the strip in front where deployables are placed) comfortably above the waterline
+    const cx = (gx0 + dx + 1) * GRID, cz = (gz0 + dz + 2) * GRID;
+    let dry = true; for (let ox = -8; ox <= 12 && dry; ox += 4) for (let oz = -6; oz <= 14 && dry; oz += 4) if (bot.world.height(cx + ox, cz + oz) < 0.9) dry = false;
+    if (dry && a.ok && b.ok && a.piece.y === b.piece.y) return { gx: gx0 + dx, gz: gz0 + dz };
   }
   throw new Error('no build spot');
 }

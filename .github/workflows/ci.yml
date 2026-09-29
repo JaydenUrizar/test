@@ -10,3 +10,4 @@ jobs:
       - run: npm ci
       - run: node test/units.mjs
       - run: node test/integration.mjs
+      - run: node scripts/build-pages.mjs /tmp/dist-ci

@@ -2,7 +2,7 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { JsonStore } from './store.js';
-import { rid, sha256, cleanText } from './util.js';
+import { rid, sha256, cleanText, safeEqual } from './util.js';
 
 export const DEFAULT_APPEARANCE = { skin: 2, hair: 1, hairColor: 2, eyes: 0, shirt: 3, pants: 1, accent: 0, hat: 0 };
 const SKIN_N = 8, HAIR_N = 8, HAIRCOL_N = 10, EYES_N = 6, COLOR_N = 12, ACC_N = 8, HAT_N = 5;
@@ -44,7 +44,7 @@ export class Accounts {
     // always hash to keep timing similar
     const salt = user ? user.salt : 'x'.repeat(32);
     const h = this.hash(String(password || ''), salt);
-    if (!user || !crypto.timingSafeEqual(Buffer.from(h), Buffer.from(user.hash))) throw new Error('Wrong name or password');
+    if (!user || !safeEqual(h, user.hash)) throw new Error('Wrong name or password');
     return this.newSession(user);
   }
   newSession(user) {

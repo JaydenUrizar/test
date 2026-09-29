@@ -48,11 +48,8 @@ export class Lobby {
     loop();
     this.gc = setInterval(() => this.collect(), 10000);
   }
-  stop() {
-    clearTimeout(this.timer); clearInterval(this.gc);
-    for (const w of this.worlds.values()) w.save(true);
-    this.store.flush();
-  }
+  saveAll() { for (const w of this.worlds.values()) w.save(true); this.store.flush(); }
+  stop() { clearTimeout(this.timer); clearInterval(this.gc); this.saveAll(); }
 
   collect() {
     for (const [id, w] of this.worlds) {

@@ -6,13 +6,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Emberwild: light a fire, claim the wild. A multiplayer survival game that runs in your browser.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4c4 10 16 16 16 32a16 16 0 0 1-32 0c0-8 4-12 8-16 0 6 3 8 5 8-2-10 0-18 3-24z' fill='%23ff8a3c'/%3E%3Cpath d='M32 30c3 5 8 8 8 14a8 8 0 0 1-16 0c0-4 3-6 5-9 0 3 1 4 3 4z' fill='%23ffd25a'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="/css/base.css">
-<link rel="stylesheet" href="/css/menus.css">
-<link rel="stylesheet" href="/css/game.css">
-<link rel="stylesheet" href="/css/inventory.css">
-<link rel="stylesheet" href="/css/panels.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/menus.css">
+<link rel="stylesheet" href="css/game.css">
+<link rel="stylesheet" href="css/inventory.css">
+<link rel="stylesheet" href="css/panels.css">
 <script type="importmap">
-{ "imports": { "three": "/vendor/three.module.js", "three-addons/": "/vendor/three-addons/" } }
+{ "imports": { "three": "./vendor/three.module.js", "three-addons/": "./vendor/three-addons/", "/shared/": "./shared/", "/js/": "./js/" } }
 </script>
 </head>
 <body>
@@ -61,6 +61,6 @@
 <div id="overlay-root"></div>
 <div id="toast-root"></div>
 
-<script type="module" src="/js/main.js"></script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -1,9 +1,11 @@
 // Boot: menus, session restore, deep links.
 import { app } from './app.js';
 import { api } from './api.js';
+import { initBackend, backend } from './backend.js';
 import { initMenus } from './ui/menus.js';
 
 async function boot() {
+  await initBackend();
   app.menus = initMenus(app);
   window.app = app;
   const code = new URLSearchParams(location.search).get('join');

@@ -19,6 +19,21 @@ npm start            # http://localhost:3000
 Open the URL, create an account, customise your character, pick a server (or host your own private one) and play.
 Friends on your network can join at `http://<your-ip>:3000`; for internet play see [Deployment](#deployment).
 
+## Play it from a link (GitHub Pages / any static host)
+
+GitHub Pages can only serve static files, so the site build (`npm run build:pages` → `dist/`) ships the **whole game server bundled into a Web Worker**.
+When the page finds no backend it starts that server inside your browser tab: **single-player, fully featured world** (all systems, mobs, crafting, building,
+persistence). Accounts, characters and worlds are stored in IndexedDB — per browser, no other players.
+
+* **Publish:** push to this repo — `.github/workflows/pages.yml` builds and force-pushes `dist/` to the `gh-pages` branch. Then, once, enable
+  *Settings → Pages → Build and deployment → Source: Deploy from a branch → `gh-pages` / (root)*. The site appears at `https://<user>.github.io/<repo>/`.
+* **Real multiplayer from the same link:** host the Node server somewhere (`npm start`, Docker, a VM) and open
+  `https://<user>.github.io/<repo>/?server=your-host:3000` (the server sends CORS headers; use `https://`/`wss://` behind a TLS proxy when the page is https).
+  The choice is remembered; `?server=off` forgets it. Without `?server=`, the page prefers a same-origin server, then falls back to the in-browser one. `?local` forces offline mode.
+* **Preview locally:** `npm run preview:pages` (serves `dist/` like GitHub Pages, no API) — or `npm run test:pages`, which plays the static build in headless Chromium under a sub-path.
+* Offline-mode caveats: progress is saved every 30 s and when the tab is hidden/closed (best effort); clearing site data deletes it; the password KDF is iterated SHA-256
+  instead of scrypt (irrelevant for a private local server); the world simulation shares the browser's CPU, so low-end machines may run at a lower tick rate.
+
 ## What's in the game
 
 | Area | Details |
@@ -74,7 +89,7 @@ is in `shared/items.js`; world generation parameters in `shared/worldgen.js`.
 
 ```
 shared/   noise.js worldgen.js items.js building.js physics.js     (isomorphic, deterministic)
-server/   index.js (HTTP, REST, WS)  lobby.js  accounts.js  store.js  game.js (GameWorld core)
+server/   index.js (HTTP + ws transport)  core.js (REST + session logic, transport-independent)  browser-worker.js + shims/ (in-browser build)  lobby.js  accounts.js  store.js  game.js (GameWorld core)
           systems/  survival crafting combat mobs building containers devices social
 client/   index.html  css/  js/ (game.js world.js entities.js controls.js interact.js hud.js audio.js models.js effects.js net.js …)
           js/ui/ menus, inventory, icons, map, panels
@@ -110,6 +125,7 @@ node test/integration.mjs   # 19 steps with real WebSocket bots: gather → craf
                             # death/loot → raiding → anti-cheat → reconnect → full-server-restart persistence
 node test/smoke.mjs         # quick join/walk/gather smoke test
 node test/e2e.cjs           # headless-Chromium E2E through the real UI: register, host a server, join, build with the mouse, reload/fire, campfire
+node test/pages.mjs         # builds the static site, serves it under /test/ with NO backend and plays it (offline mode, reload persistence, ?server= remote mode)
 node test/showcase.mjs      # visual QA: warps a browser player to landmarks/weather/night and saves screenshots (default /tmp/ew-show)
 ```
 
@@ -127,6 +143,8 @@ docker compose up -d --build     # data persists in the emberwild-data volume
 
 **Bare metal / VM.** Node ≥ 20, `npm ci --omit=dev`, then run `node server/index.js` under systemd or pm2 with `DATA_DIR` on persistent storage.
 `SIGTERM` saves all worlds before exit.
+
+**Static hosting.** See [Play it from a link](#play-it-from-a-link-github-pages--any-static-host); any static host works with `dist/`.
 
 **Reverse proxy / HTTPS.** Terminate TLS in front (the client automatically uses `wss://` when served over `https://`). nginx example:
 

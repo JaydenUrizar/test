@@ -6,6 +6,7 @@ export const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
 export const dist3 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 export const rid = (n = 16) => crypto.randomBytes(n).toString('hex');
 export const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
+export const safeEqual = (a, b) => { a = String(a); b = String(b); let d = a.length ^ b.length; for (let i = 0; i < Math.max(a.length, b.length); i++) d |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0); return d === 0; };
 export const rnd = (a, b) => a + Math.random() * (b - a);
 export const rndi = (a, b) => Math.floor(a + Math.random() * (b - a + 1));
 export const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];

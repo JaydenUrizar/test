@@ -8,7 +8,7 @@ const MODE_DESC = {
   relaxed: 'Boosted gathering, keep your gear when you die.',
   hardcore: 'Short days, scarce loot, friendly fire. Brutal.',
 };
-const inviteLink = (code) => `${location.origin}/?join=${code}`;
+const inviteLink = (code) => `${location.origin}${location.pathname}?join=${code}`;
 const SEED_WORDS = ['EMBER', 'ASH', 'COVE', 'PINE', 'DUSK', 'RAVEN', 'FROST', 'MOSS', 'CRAG', 'TIDE', 'HOLLOW', 'GLEAM', 'BRIAR', 'FLINT', 'WILLOW', 'THORN'];
 const randomSeed = () => SEED_WORDS[Math.floor(Math.random() * SEED_WORDS.length)] + '-' + Math.floor(Math.random() * 0xffffff).toString(16).toUpperCase().padStart(6, '0');
 const fmtRel = (ms) => { const s = Math.round(ms / 1000); return s < 3 ? 'just now' : s < 60 ? `${s}s ago` : `${Math.floor(s / 60)}m ago`; };

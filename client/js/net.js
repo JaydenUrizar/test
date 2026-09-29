@@ -1,3 +1,4 @@
+import { backend } from './backend.js';
 // WebSocket transport with automatic reconnect, ping/RTT measurement and message queueing.
 // QA: append ?lag=200 to the page URL to simulate 200 ms of round-trip latency (and ?loss=0.05 for 5% packet loss on input).
 const QS = new URLSearchParams(location.search);
@@ -16,8 +17,7 @@ export class Net {
   }
   open() {
     clearTimeout(this.timer);
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${proto}://${location.host}/ws`);
+    const ws = backend.openSocket();
     this.ws = ws; this.joined = false;
     ws.onopen = () => { this.connected = true; ws.send(JSON.stringify(this.joinMsg)); };
     ws.onmessage = (ev) => { if (LAG) setTimeout(() => this.onRaw(ev), LAG / 2); else this.onRaw(ev); };

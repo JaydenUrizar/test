@@ -1,5 +1,6 @@
 // Emberwild menus — login, main menu, server browser, hosting, character creator, settings, controls, pause & dialogs.
 // Public API: initMenus(app) -> { show, hide, showPause, joinInvite, showConnecting, showError }
+import { backend } from '../backend.js';
 import { Backdrop } from './menus/backdrop.js';
 import { CharacterPreview } from './menus/preview.js';
 import { serverScreens } from './menus/servers.js';
@@ -139,7 +140,8 @@ export function initMenus(app) {
           <button class="btn primary big mn-submit" type="submit"></button>
           <p class="mn-hint"></p>
         </div></form>
-      <div class="mn-foot-note">Free to play · runs in your browser · ${esc(location.host || 'localhost')}</div></div></div>`);
+      ${backend.mode === 'local' ? `<div class="mn-banner">${icon('link', 'sm')}<span><b>Offline mode</b> — the game server runs inside this browser tab (single-player). Your account, characters and worlds are saved in this browser only.${backend.persisted ? '' : ' <b>Storage is blocked here, so progress will not persist.</b>'}${backend.reason ? ' ' + esc(backend.reason) : ''}</span></div>` : ''}
+      <div class="mn-foot-note">Free to play · runs in your browser · ${esc(backend.label)}</div></div></div>`);
     const form = $('form', node), err = $('.mn-err', node), submit = $('.mn-submit', node), name = $('[name=name]', node), pass = $('[name=password]', node), pass2 = $('[name=password2]', node), hint = $('.mn-hint', node);
     const setTab = (t) => {
       tab = t; err.textContent = '';
@@ -236,7 +238,7 @@ export function initMenus(app) {
     $('[data-act=resume]', node).addEventListener('click', resume);
     $('[data-act=leave]', node).addEventListener('click', () => { hide(); o.onLeave ? o.onLeave() : app.leaveGame && app.leaveGame(); });
     $$('[data-go]', node).forEach((b) => b.addEventListener('click', () => show(b.dataset.go)));
-    $('[data-act=copyinv]', node)?.addEventListener('click', () => ctx.copy(`${location.origin}/?join=${gi.invite}`, 'Invite link'));
+    $('[data-act=copyinv]', node)?.addEventListener('click', () => ctx.copy(`${location.origin}${location.pathname}?join=${gi.invite}`, 'Invite link'));
     setTimeout(() => $('[data-act=resume]', node)?.focus(), 60);
     return { el: node, back: () => { if (performance.now() - state.pausedAt > 300) resume(); } };
   }
@@ -250,7 +252,7 @@ export function initMenus(app) {
           <div><h4>Tech</h4><p>Three.js for rendering · Node.js &amp; WebSockets for the authoritative multiplayer servers · procedural worlds, models and sounds generated in code.</p></div>
           <div><h4>Worlds</h4><p>Every seed grows the same island for everyone. Host your own server, pick your rules, and share the invite code.</p></div>
           <div><h4>Thanks</h4><p>To every explorer who lit a first fire, survived a first night, and told a friend.</p></div>
-        </div><p class="mn-foot-note">Light a fire. Claim the wild.</p></div></div></div>`);
+        </div><p class="mn-foot-note">Light a fire. Claim the wild.${backend.mode === 'local' ? ' · <b>Offline mode</b> (single-player, saved in this browser)' : ''}</p></div></div></div>`);
     $('.mn-back', node).addEventListener('click', goBack);
     setTimeout(() => $('.mn-back', node).focus(), 60);
     return { el: node, back: () => show(state.inGame ? 'pause' : 'main') };

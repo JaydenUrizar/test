@@ -7,12 +7,20 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
-    "test": "node test/run.js"
+    "test": "node test/run.js",
+    "build:pages": "node scripts/build-pages.mjs",
+    "preview:pages": "node scripts/build-pages.mjs && node scripts/serve-dist.mjs dist 8080 /",
+    "test:pages": "node test/pages.mjs"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "license": "MIT",
   "dependencies": {
     "three": "^0.170.0",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }

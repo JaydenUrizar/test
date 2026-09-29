@@ -7,6 +7,7 @@ This file records what the current version deliberately does **not** do, with th
 
 | Area | Limit today | Next step |
 |---|---|---|
+| **Static / offline mode** | The GitHub Pages build runs the server in a Web Worker: single-player only, saved per browser (IndexedDB), no scrypt. | Optional WebRTC/relay so two browsers can share one in-browser world; cloud save sync. |
 | **Scale** | One Node process simulates every loaded world (≈8 by default). Worlds are JSON files. | Run several instances behind a lobby, or move `JsonStore` behind an interface backed by SQLite/Postgres (`server/store.js` is the only file that touches disk). |
 | **Mobs** | Steering AI without pathfinding: animals/raiders can snag on walls and don't open doors. Only raiders shoot. | Add a coarse nav-grid (`WorldData.staticGrid` + `PieceIndex`) with A*; let raiders breach doors; add night-time zombie-like events. |
 | **Building** | No triangular roofs, gates, fences, ramps for steep foundations (players jump onto foundations up to 1.2 m). Privilege = "no other team's pieces within 26 m" rather than a tool cupboard; decay is a simple offline timer (PvP modes only). | Tool-cupboard entity with upkeep cost; extra pieces (roof, half-wall, gate); per-piece "authorized list". |

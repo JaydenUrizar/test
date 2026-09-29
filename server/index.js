@@ -5,10 +5,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
-import { Accounts } from './accounts.js';
-import { Lobby } from './lobby.js';
-import { Bucket } from './util.js';
-import { MODES } from '../shared/items.js';
+import { createCore } from './core.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -18,9 +15,8 @@ const MAX_WORLDS = parseInt(process.env.MAX_WORLDS || '8', 10);
 
 export function createServer({ port = PORT, host = HOST, dataDir = DATA_DIR } = {}) {
   fs.mkdirSync(dataDir, { recursive: true });
-  const accounts = new Accounts(dataDir);
-  const lobby = new Lobby(dataDir, { maxWorlds: MAX_WORLDS });
-  lobby.start();
+  const core = createCore({ dataDir, maxWorlds: MAX_WORLDS, maxConnPerIp: parseInt(process.env.MAX_CONN_PER_IP || '12', 10), uptime: () => process.uptime() });
+  const { accounts, lobby } = core;
 
   const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8' };
   const STATIC = [
@@ -64,46 +60,21 @@ export function createServer({ port = PORT, host = HOST, dataDir = DATA_DIR } = 
   }
 
   // ---------------- REST
-  const ipBuckets = new Map();
-  const authLimit = (ip) => { let b = ipBuckets.get(ip); if (!b) ipBuckets.set(ip, (b = new Bucket(10 / 60, 10))); return b.allow(); };
   const readBody = (req) => new Promise((resolve, reject) => {
     let n = 0; const chunks = [];
     req.on('data', (c) => { n += c.length; if (n > 20000) { reject(new Error('Body too large')); req.destroy(); } else chunks.push(c); });
     req.on('end', () => { try { resolve(chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {}); } catch { reject(new Error('Bad JSON')); } });
     req.on('error', reject);
   });
-  const json = (res, code, obj) => { const b = JSON.stringify(obj); res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Content-Length': Buffer.byteLength(b) }); res.end(b); };
-  const authUser = (req) => accounts.byToken((req.headers.authorization || '').replace(/^Bearer /, ''));
-
+  // CORS so a statically hosted client (e.g. GitHub Pages) can talk to this server: <page>?server=https://your-host
+  const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS', 'Access-Control-Max-Age': '600' };
+  const json = (res, code, obj) => { const b = JSON.stringify(obj); res.writeHead(code, { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Content-Length': Buffer.byteLength(b) }); res.end(b); };
   async function api(req, res, url) {
-    const ip = req.socket.remoteAddress || '';
-    try {
-      if (url.pathname === '/api/health') return json(res, 200, { ok: true, name: 'Emberwild', worlds: lobby.worlds.size, uptime: Math.round(process.uptime()) });
-      if (url.pathname === '/api/modes') return json(res, 200, { modes: Object.fromEntries(Object.entries(MODES).map(([k, v]) => [k, v])) });
-      if (req.method === 'POST' && (url.pathname === '/api/register' || url.pathname === '/api/login')) {
-        if (!authLimit(ip)) return json(res, 429, { error: 'Too many attempts — slow down a little.' });
-        const b = await readBody(req);
-        const r = url.pathname === '/api/register' ? accounts.register(b.name, b.password) : accounts.login(b.name, b.password);
-        return json(res, 200, { token: r.token, profile: accounts.profile(r.user) });
-      }
-      const user = authUser(req);
-      if (url.pathname === '/api/logout' && req.method === 'POST') { accounts.logout((req.headers.authorization || '').replace(/^Bearer /, '')); return json(res, 200, { ok: true }); }
-      if (!user) return json(res, 401, { error: 'Please sign in' });
-      if (url.pathname === '/api/me' && req.method === 'GET') return json(res, 200, { profile: accounts.profile(user) });
-      if (url.pathname === '/api/profile' && req.method === 'POST') { accounts.update(user, await readBody(req)); return json(res, 200, { profile: accounts.profile(user) }); }
-      if (url.pathname === '/api/servers' && req.method === 'GET') return json(res, 200, { servers: lobby.list(user.uid) });
-      if (url.pathname === '/api/servers' && req.method === 'POST') { const s = lobby.create(user, await readBody(req)); return json(res, 200, { server: lobby.view(s, user.uid) }); }
-      if (url.pathname === '/api/servers/invite' && req.method === 'POST') {
-        const b = await readBody(req); const s = lobby.byInvite(b.code);
-        if (!s) return json(res, 404, { error: 'No server found for that invite code' });
-        return json(res, 200, { server: lobby.view(s, user.uid), invite: String(b.code).toUpperCase() });
-      }
-      const del = url.pathname.match(/^\/api\/servers\/([\w-]+)$/);
-      if (del && req.method === 'DELETE') { lobby.remove(user, del[1]); return json(res, 200, { ok: true }); }
-      return json(res, 404, { error: 'Not found' });
-    } catch (e) {
-      return json(res, 400, { error: e.message || 'Bad request' });
-    }
+    if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
+    let body = {};
+    try { if (req.method === 'POST') body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
+    const r = core.api(url.pathname, req.method, body, req.headers.authorization, req.socket.remoteAddress || '');
+    return json(res, r.code, r.body);
   }
 
   const server = http.createServer((req, res) => {
@@ -117,54 +88,11 @@ export function createServer({ port = PORT, host = HOST, dataDir = DATA_DIR } = 
 
   // ---------------- WebSocket
   const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 16 * 1024, perMessageDeflate: false });
-  const ipConns = new Map(), joinBuckets = new Map();
   const clientIp = (req) => (process.env.TRUST_PROXY ? String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() : '') || req.socket.remoteAddress || '';
   wss.on('connection', (ws, req) => {
-    const ip = clientIp(req);
-    const n = (ipConns.get(ip) || 0) + 1; ipConns.set(ip, n);
-    ws.on('close', () => { const c = (ipConns.get(ip) || 1) - 1; if (c <= 0) ipConns.delete(ip); else ipConns.set(ip, c); });
-    if (n > (parseInt(process.env.MAX_CONN_PER_IP || '12', 10))) { try { ws.send(JSON.stringify({ t: 'error', error: 'Too many connections from your address' })); } catch {} ws.close(); return; }
-    let ctx = null; // { world, p }
     ws.isAlive = true;
     ws.on('pong', () => { ws.isAlive = true; });
-    const timer = setTimeout(() => { if (!ctx) ws.close(); }, 8000);
-    const send = (o) => { try { ws.send(JSON.stringify(o)); } catch {} };
-    ws.on('message', (data, isBinary) => {
-      if (isBinary) return;
-      let msg;
-      try { msg = JSON.parse(data.toString('utf8')); } catch { return; }
-      if (!msg || typeof msg !== 'object') return;
-      if (!ctx) {
-        if (msg.t !== 'join') return;
-        clearTimeout(timer);
-        let jb = joinBuckets.get(ip); if (!jb) joinBuckets.set(ip, (jb = new Bucket(30 / 60, 30)));
-        if (!jb.allow()) { send({ t: 'error', error: 'Too many join attempts — wait a moment' }); ws.close(); return; }
-        try {
-          const user = accounts.byToken(msg.token);
-          if (!user) throw new Error('Session expired — please sign in again');
-          const s = lobby.find(msg.server);
-          if (!s) throw new Error('That server no longer exists');
-          lobby.authorizeJoin(user, s, msg);
-          const world = lobby.world(s);
-          const r = world.join(ws, user, msg);
-          if (r.error) throw new Error(r.error);
-          ctx = { world, p: r.p, user, joined: Date.now() };
-          send({ t: 'joined', eid: r.p.eid });
-        } catch (e) { send({ t: 'error', error: e.message }); ws.close(); }
-        return;
-      }
-      if (msg.t === 'join') return;
-      try { ctx.world.onMessage(ctx.p, msg); } catch (e) { console.error('[msg error]', msg && msg.t, e); }
-    });
-    ws.on('close', () => {
-      clearTimeout(timer);
-      if (ctx && ctx.p.ws === ws) {
-        ctx.user.playSeconds = (ctx.user.playSeconds || 0) + (Date.now() - ctx.joined) / 1000;
-        accounts.store.touch(1000);
-        ctx.world.leave(ctx.p);
-      }
-    });
-    ws.on('error', () => {});
+    core.connection(ws, clientIp(req));
   });
   const hb = setInterval(() => {
     for (const ws of wss.clients) { if (!ws.isAlive) { ws.terminate(); continue; } ws.isAlive = false; try { ws.ping(); } catch {} }
@@ -173,7 +101,7 @@ export function createServer({ port = PORT, host = HOST, dataDir = DATA_DIR } = 
   const ready = new Promise((resolve) => server.listen(port, host, () => resolve(server.address().port)));
   const close = async () => {
     clearInterval(hb);
-    lobby.stop(); accounts.store.flush();
+    core.stop();
     for (const ws of wss.clients) ws.terminate();
     await new Promise((r) => server.close(r));
   };
