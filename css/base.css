@@ -1,0 +1,71 @@
+/* Emberwild design tokens & shared components */
+:root {
+  --ink: #0f1519; --ink2: #141c21; --panel: #1a242a; --panel2: #223038; --panel3: #2b3c45; --line: #35494f;
+  --ember: #ff8a3c; --ember2: #ffb457; --ember-d: #c9601c; --leaf: #7fbf5a; --sky: #5cc0e8; --danger: #e2554b; --gold: #f2c94c; --violet: #a78bfa;
+  --text: #f3ecd9; --muted: #9db0b8; --dim: #6f838b;
+  --radius: 12px; --radius-s: 8px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  --font: 'Trebuchet MS', 'Segoe UI', 'Helvetica Neue', system-ui, sans-serif;
+  --font-display: 'Trebuchet MS', 'Arial Rounded MT Bold', 'Segoe UI', system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--ink); color: var(--text); font-family: var(--font); -webkit-font-smoothing: antialiased; user-select: none; }
+canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+.hidden { display: none !important; }
+h1, h2, h3 { font-family: var(--font-display); margin: 0; letter-spacing: .04em; }
+a { color: var(--ember2); }
+::selection { background: var(--ember); color: #000; }
+::-webkit-scrollbar { width: 10px; height: 10px; } ::-webkit-scrollbar-thumb { background: var(--panel3); border-radius: 8px; border: 2px solid var(--panel); } ::-webkit-scrollbar-track { background: transparent; }
+
+/* buttons */
+.btn { font: inherit; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; font-size: 13px; color: var(--text); background: var(--panel3); border: 0; border-radius: var(--radius-s); padding: 11px 18px; cursor: pointer; box-shadow: 0 3px 0 #16222a, inset 0 1px 0 rgba(255,255,255,.08); transition: transform .06s, filter .12s, background .12s; }
+.btn:hover { filter: brightness(1.18); } .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #16222a; }
+.btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+.btn.primary { background: linear-gradient(#ff9a4a, #f0761c); color: #2a1200; box-shadow: 0 3px 0 #a34a10, inset 0 1px 0 rgba(255,255,255,.35); text-shadow: 0 1px 0 rgba(255,255,255,.25); }
+.btn.primary:active { box-shadow: 0 1px 0 #a34a10; }
+.btn.danger { background: #a83a34; box-shadow: 0 3px 0 #6a2420; }
+.btn.ghost { background: transparent; box-shadow: none; border: 1px solid var(--line); }
+.btn.small { padding: 7px 12px; font-size: 11px; }
+.btn.big { padding: 15px 28px; font-size: 16px; }
+
+/* form */
+.input, select.input, textarea.input { font: inherit; color: var(--text); background: #0d1418; border: 2px solid var(--line); border-radius: var(--radius-s); padding: 10px 12px; width: 100%; outline: none; user-select: text; }
+.input:focus { border-color: var(--ember); box-shadow: 0 0 0 3px rgba(255, 138, 60, .18); }
+label.field { display: block; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin: 12px 0 5px; }
+.check { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 0; }
+.check input { width: 18px; height: 18px; accent-color: var(--ember); }
+input[type=range] { accent-color: var(--ember); width: 100%; }
+
+/* panels */
+.panel { background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.panel-h { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); font-family: var(--font-display); text-transform: uppercase; letter-spacing: .1em; font-size: 14px; color: var(--ember2); }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 20px; background: var(--panel3); color: var(--muted); }
+.tag.pvp { background: #5b2420; color: #ffb4a8; } .tag.pve { background: #234a2a; color: #b7f0a8; } .tag.official { background: #4a3a14; color: var(--gold); } .tag.lock { background: #2b3c55; color: #a8cdf5; }
+.muted { color: var(--muted); } .dim { color: var(--dim); }
+.tabs { display: flex; gap: 4px; padding: 0 12px; border-bottom: 1px solid var(--line); }
+.tab { padding: 10px 14px; cursor: pointer; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); border-bottom: 3px solid transparent; }
+.tab:hover { color: var(--text); } .tab.on { color: var(--ember2); border-color: var(--ember); }
+.bar { height: 10px; background: #0a0f12; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,.06); }
+.bar > i { display: block; height: 100%; background: var(--ember); border-radius: 6px; transition: width .2s; }
+
+/* modal */
+.modal-back { position: fixed; inset: 0; background: rgba(6, 10, 12, .72); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; }
+.modal { width: min(560px, 92vw); max-height: 90vh; overflow: auto; }
+.modal .body { padding: 18px; }
+
+/* toasts */
+#toast-root { position: fixed; top: 76px; left: 50%; transform: translateX(-50%); z-index: 300; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+.toast { background: rgba(18, 26, 31, .92); border: 1px solid var(--line); border-left: 4px solid var(--ember); padding: 9px 16px; border-radius: 8px; font-size: 14px; box-shadow: var(--shadow); animation: toastIn .25s ease-out; max-width: 80vw; }
+.toast.warn { border-left-color: var(--gold); } .toast.good { border-left-color: var(--leaf); } .toast.bad { border-left-color: var(--danger); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+
+/* item slot (shared by inventory/hud) */
+.slot { position: relative; width: 56px; height: 56px; background: rgba(8, 14, 17, .7); border: 2px solid #2d3f47; border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+.slot.filled { background: linear-gradient(160deg, #2a3a43, #1a252b); border-color: #46606a; }
+.slot .ico { width: 42px; height: 42px; pointer-events: none; display: block; }
+.slot .cnt { position: absolute; right: 4px; bottom: 2px; font-size: 12px; font-weight: 800; text-shadow: 0 1px 2px #000, 0 0 3px #000; pointer-events: none; }
+.slot .key { position: absolute; left: 4px; top: 2px; font-size: 10px; color: var(--muted); font-weight: 700; pointer-events: none; }
+.slot .dur { position: absolute; left: 5px; right: 5px; bottom: 3px; height: 3px; background: #0006; border-radius: 3px; overflow: hidden; pointer-events: none; }
+.slot .dur i { display: block; height: 100%; background: var(--leaf); }
+.slot.sel { border-color: var(--ember); box-shadow: 0 0 12px rgba(255, 138, 60, .55); }
+.logo-flame { filter: drop-shadow(0 0 12px rgba(255, 138, 60, .6)); }
