@@ -235,12 +235,13 @@ export function buildAnimal(sp) {
 
 // ------------------------------------------------------------------ RESOURCE NODES (merged, vertex-coloured)
 const NODE_GEOS = {};
-function mergeColored(list) { return mergeGeometries(list.map((g) => g.index ? g.toNonIndexed() : g), false); }
+function mergeColored(list) { return mergeGeometries(list, false); }
 const T = (g, x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) => { g.rotateX(rx); g.rotateY(ry); g.rotateZ(rz); g.scale(sx, sy, sz); g.translate(x, y, z); return g; };
-const CylC = (rt, rb, h, seg, c) => tint(new THREE.CylinderGeometry(rt, rb, h, seg).toNonIndexed(), c);
-const ConeC = (r, h, seg, c) => tint(new THREE.ConeGeometry(r, h, seg).toNonIndexed(), c);
-const IcoC = (r, d, c) => tint(new THREE.IcosahedronGeometry(r, d).toNonIndexed(), c);
-const BoxC = (w, h, d, c) => tint(new THREE.BoxGeometry(w, h, d).toNonIndexed(), c);
+const ni = (g) => (g.index ? g.toNonIndexed() : g);
+const CylC = (rt, rb, h, seg, c) => tint(ni(new THREE.CylinderGeometry(rt, rb, h, seg)), c);
+const ConeC = (r, h, seg, c) => tint(ni(new THREE.ConeGeometry(r, h, seg)), c);
+const IcoC = (r, d, c) => tint(ni(new THREE.IcosahedronGeometry(r, d)), c);
+const BoxC = (w, h, d, c) => tint(ni(new THREE.BoxGeometry(w, h, d)), c);
 
 export function nodeGeometry(type) {
   if (NODE_GEOS[type]) return NODE_GEOS[type];

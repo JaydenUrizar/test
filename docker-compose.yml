@@ -1,0 +1,12 @@
+services:
+  emberwild:
+    build: .
+    ports: ["3000:3000"]
+    environment:
+      PORT: "3000"
+      MAX_WORLDS: "8"
+    volumes:
+      - emberwild-data:/data
+    restart: unless-stopped
+volumes:
+  emberwild-data:

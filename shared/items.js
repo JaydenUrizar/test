@@ -227,3 +227,6 @@ export const RULE_KEYS = ['pvp', 'raiding', 'friendlyFire', 'mobs', 'deathDrop',
 
 export function itemName(id) { return I[id]?.name || id; }
 export function canStack(id) { return (I[id]?.stack || 1) > 1; }
+
+// Harden lookups: client-supplied ids like "__proto__" / "constructor" must never resolve to anything.
+for (const o of [ITEMS, NODES, DEPLOY, SMELT, CROPS, LOOT, PERKS, MODES, RECIPE]) Object.setPrototypeOf(o, null);

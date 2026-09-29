@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Panels harness (dev only)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/css/base.css"><link rel="stylesheet" href="/css/panels.css">
+<style>
+  body { background: linear-gradient(#2b4a3a, #16241c); }
+  #bar { position: fixed; top: 8px; left: 8px; z-index: 500; display: flex; gap: 6px; flex-wrap: wrap; }
+  #minimap-wrap { position: fixed; left: 16px; bottom: 16px; width: 160px; }
+  #minimap { width: 160px; height: 160px; display: block; filter: drop-shadow(0 4px 10px rgba(0,0,0,.5)); }
+  #minimap-coords { text-align: center; font-size: 11px; margin-top: 4px; color: var(--text); text-shadow: 0 1px 3px #000; }
+  #log { position: fixed; right: 8px; bottom: 8px; width: 300px; max-height: 160px; overflow: auto; font: 11px monospace; color: #9db0b8; background: rgba(0,0,0,.5); padding: 6px; z-index: 500; }
+</style></head>
+<body>
+<div id="bar">
+  <button class="btn small" data-a="map">Map</button><button class="btn small" data-a="skills">Skills</button><button class="btn small" data-a="team">Team</button>
+  <button class="btn small" data-a="walk">Toggle walk</button><button class="btn small" data-a="invite">Invite</button><button class="btn small" data-a="discover">Discover all</button>
+</div>
+<div id="minimap-wrap"><canvas id="minimap" width="160" height="160"></canvas><div id="minimap-coords"></div></div>
+<div id="log"></div>
+<div id="map-root" class="hidden"></div>
+<div id="panel-root" class="hidden"></div>
+<div id="overlay-root"></div>
+<script type="module" src="./panels-harness.js"></script>
+</body></html>

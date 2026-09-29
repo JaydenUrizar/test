@@ -32,6 +32,21 @@ export function addTo(slots, id, n, extra = null, from = 0, to = slots.length) {
   }
   return n;
 }
+// Where an item prefers to live: tools/weapons/food/deployables on the hotbar, materials in the backpack.
+const HOT_CATS = new Set(['tool', 'melee', 'gun', 'bow', 'build', 'med', 'deploy', 'food']);
+export function addPreferred(slots, id, n, extra = null, hotbar = 6) {
+  const d = ITEMS[id];
+  if (!d) return n;
+  const max = maxStack(id);
+  if (max > 1) for (let i = 0; i < slots.length && n > 0; i++) { const s = slots[i]; if (s && s.id === id && s.n < max) { const t = Math.min(n, max - s.n); s.n += t; n -= t; } }
+  const order = HOT_CATS.has(d.cat) ? [[0, hotbar], [hotbar, slots.length]] : [[hotbar, slots.length], [0, hotbar]];
+  for (const [a, b] of order) {
+    for (let i = a; i < b && n > 0; i++) {
+      if (!slots[i]) { const it = mkItem(id, Math.min(n, max)); if (extra) Object.assign(it, extra); slots[i] = it; n -= it.n; }
+    }
+  }
+  return n;
+}
 export function addInstance(slots, inst, from = 0, to = slots.length) {
   // keep durability/ammo for unstackables
   if (maxStack(inst.id) === 1) {

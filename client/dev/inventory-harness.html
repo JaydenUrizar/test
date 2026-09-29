@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Inventory harness</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/inventory.css">
+<style>
+  body { background: linear-gradient(#3b5a72 0%, #8fb0b8 52%, #2f4a2a 52%, #1f3320 100%); }
+  #hint { position: fixed; left: 12px; bottom: 10px; font: 12px monospace; color: #fff; text-shadow: 0 1px 2px #000; z-index: 5; }
+  #log { position: fixed; right: 8px; top: 8px; width: 260px; max-height: 40vh; overflow: hidden; font: 11px monospace; color: #fff; background: #0008; padding: 6px; border-radius: 6px; z-index: 1; pointer-events: none; }
+  #sheet { position: fixed; inset: 0; overflow: auto; padding: 16px; background: #141c21; z-index: 100; }
+  #sheet .g { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  #sheet .c { background: #1a242a; border: 1px solid #35494f; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: #9db0b8; }
+  #sheet .row { display: flex; gap: 8px; align-items: center; } #sheet .big { width: 96px; height: 96px; }
+</style></head>
+<body>
+<div id="hint">Standalone harness — Tab toggles, Esc closes. Params: ?cont=furnace|campfire|crate|box|turret|bag &amp;tab=crafting &amp;bench=0|1|2 &amp;level=N &amp;sheet=1</div>
+<div id="log"></div>
+<div id="inv-root" class="hidden"></div>
+<script type="module" src="/dev/inventory-harness.js"></script>
+</body></html>

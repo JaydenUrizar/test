@@ -5,7 +5,7 @@ import { WorldData, WORLD_HALF, WATER_LEVEL } from '../shared/worldgen.js';
 import { PieceIndex, pieceCenter } from '../shared/building.js';
 import { groundAt, isBlocked, SPEED, EYE_H, PLAYER_H } from '../shared/physics.js';
 import { ITEMS, INV_SLOTS, EQUIP_SLOTS, HOTBAR, DEPLOY, MODES, RULE_KEYS, xpForLevel, MAX_LEVEL } from '../shared/items.js';
-import { emptySlots, mkItem, addTo, addInstance, sanitizeSlots, count, moveSlot, slotAccepts, maxStack } from './inventory.js';
+import { emptySlots, mkItem, addTo, addPreferred, addInstance, sanitizeSlots, count, moveSlot, slotAccepts, maxStack } from './inventory.js';
 import { clamp, num, int, dist2, Bucket, cleanText, rnd, rndi, pick } from './util.js';
 
 export const TICK = 1 / 20;
@@ -214,7 +214,7 @@ export class GameWorld {
     p.lastSeq = 0;
     this.emptySince = 0;
     this.sendWelcome(p);
-    this.emitAll({ e: 'pj', eid: p.eid, name: p.name, app: p.app, team: p.teamId });
+    this.emitAll({ e: 'pj', eid: p.eid, name: p.name, app: p.app, team: p.teamId, eq: this.eqIds(p) });
     this.systemChat(`${p.name} joined the server`);
     return { ok: true, p };
   }
@@ -239,7 +239,7 @@ export class GameWorld {
   maxStamina(p) { return 100 + 10 * (p.perks.endure || 0); }
 
   sendWelcome(p) {
-    const players = [...this.players.values()].map((q) => ({ eid: q.eid, name: q.name, app: q.app, team: q.teamId }));
+    const players = [...this.players.values()].map((q) => ({ eid: q.eid, name: q.name, app: q.app, team: q.teamId, eq: this.eqIds(q) }));
     this.emit(p, {
       e: 'welcome',
       you: this.selfState(p),
@@ -445,7 +445,9 @@ export class GameWorld {
     this.afterInvChange(p, a, b);
   }
 
+  eqIds(p) { return p.equip.map((it) => (it ? it.id : 0)); }
   afterInvChange(p, ...refs) {
+    this.emitAll({ e: 'peq', eid: p.eid, eq: this.eqIds(p) });
     if (p.reload) { const s = p.inv[p.sel]; if (!s || s.id !== p.reload.item) p.reload = null; }
     this.sendInv(p);
     for (const r of refs) if (r && r.c) this.refreshContainer(r.c);
@@ -508,9 +510,9 @@ export class GameWorld {
     if (!ITEMS[id]) return;
     let left = n;
     if (extra && maxStack(id) === 1) {
-      for (let k = 0; k < n; k++) { const it = mkItem(id, 1); Object.assign(it, extra); if (addInstance(p.inv, it)) this.spawnDrop(it, p.x, p.y + 1, p.z); }
+      for (let k = 0; k < n; k++) { if (addPreferred(p.inv, id, 1, extra)) this.spawnDrop({ ...mkItem(id, 1), ...extra }, p.x, p.y + 1, p.z); }
       left = 0;
-    } else left = addTo(p.inv, id, n);
+    } else left = addPreferred(p.inv, id, n);
     if (left > 0) { this.spawnDrop(mkItem(id, left), p.x, p.y + 1, p.z); this.toast(p, 'Inventory full — items dropped', 'warn'); }
     this.emit(p, { e: 'got', id, n });
     this.sendInv(p);

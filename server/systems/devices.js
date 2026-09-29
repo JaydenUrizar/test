@@ -13,6 +13,7 @@ Object.assign(GameWorld.prototype, {
     for (const d of this.deps.values()) {
       const def = DEPLOY[d.type];
       if (!def) continue;
+      if (def.spikes) { if (this.tickN % 5 === 0) this.tickSpikes(d, def); continue; }
       if (def.device && d.on) this.tickDevice(d, def, dt);
       else if (def.turret && this.tickN % 3 === 0) this.tickTurret(d, dt * 3);
       else if (d.type === 'satchel' && this.clock >= d.fuseEnd) {
@@ -60,6 +61,23 @@ Object.assign(GameWorld.prototype, {
       }
     } else d.prog = 0;
     if (this.tickN % 10 === 0) this.refreshDep(d);
+  },
+
+  // Spike barricade: hurts strangers (and wildlife) that walk into it.
+  tickSpikes(d, def) {
+    const reach = def.r + 0.4;
+    for (const p of this.players.values()) {
+      if (p.dead || p.spawnPro > 0 || Math.abs(p.y - d.y) > 1.6) continue;
+      if ((p.x - d.x) ** 2 + (p.z - d.z) ** 2 > reach * reach) continue;
+      if (this.sameTeam(p.uid, d.owner) || !this.rules.pvp || this.clock < (p.spikeAt || 0)) continue;
+      p.spikeAt = this.clock + 0.6;
+      this.hurtPlayer(p, def.spikes, { kind: 'spikes', mob: 'a spike barricade' });
+      this.emitNear(d.x, d.z, 40, { e: 'hit', eid: 0, k: 'dep', x: p.x, y: p.y + 0.4, z: p.z, mat: 'wood' });
+    }
+    if (this.rules.mobs) for (const m of this.mobs.values()) {
+      if (m.dead || (m.x - d.x) ** 2 + (m.z - d.z) ** 2 > reach * reach || this.clock < (m.spikeAt || 0)) continue;
+      m.spikeAt = this.clock + 0.6; this.hurtMob(m, def.spikes, null, false, 'spikes');
+    }
   },
 
   tickTurret(d, dt) {

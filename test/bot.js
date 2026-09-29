@@ -72,6 +72,11 @@ export class Bot {
   send(o) { if (this.ws.readyState === 1) this.ws.send(JSON.stringify(o)); }
   count(id) { return this.inv.reduce((a, s) => a + (s && s.id === id ? s.n : 0), 0); }
   slotOf(id) { return this.inv.findIndex((s) => s && s.id === id); }
+  async equipHot(id) {
+    let i = this.slotOf(id); if (i < 0) throw new Error('no item ' + id);
+    if (i > 5) { this.send({ t: 'mv_item', a: ['inv', i], b: ['inv', 5] }); await this.waitFor(() => this.slotOf(id) === 5 || this.slotOf(id) < 6 && this.slotOf(id) >= 0, 2000, 'move ' + id + ' to hotbar'); i = this.slotOf(id); }
+    this.send({ t: 'sel', i }); this.sel = i; await sleep(450);
+  }
   select(id) { const i = this.slotOf(id); if (i < 0 || i > 5) throw new Error('not on hotbar: ' + id); this.send({ t: 'sel', i }); this.sel = i; }
   sendMove(flags = 0) { this.send({ t: 'mv', s: ++this.seq, x: this.s.x, y: this.s.y, z: this.s.z, yaw: this.yaw, pitch: this.pitch, f: flags }); }
   async walkTo(tx, tz, opts = {}) {
