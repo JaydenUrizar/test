@@ -78,7 +78,7 @@ server/   index.js (HTTP, REST, WS)  lobby.js  accounts.js  store.js  game.js (G
           systems/  survival crafting combat mobs building containers devices social
 client/   index.html  css/  js/ (game.js world.js entities.js controls.js interact.js hud.js audio.js models.js effects.js net.js …)
           js/ui/ menus, inventory, icons, map, panels
-test/     integration.mjs (protocol bots)  smoke.mjs  units.mjs  pw.cjs (browser helpers)
+test/     units.mjs  integration.mjs (protocol bots)  smoke.mjs  e2e.cjs  showcase.mjs  bot.js  pw.cjs
 docs/     PLAN.md  PROTOCOL.md  CLIENT_API.md  ROADMAP.md
 ```
 
@@ -105,11 +105,17 @@ the client reconnects automatically (backoff, up to 12 tries) and the server kee
 
 ```bash
 npm test                    # unit checks + full protocol integration test (starts its own server)
-node test/integration.mjs   # gather → craft → build → locks → furnace → PvP → raiding → death/loot → anti-cheat → reconnect → persistence
+node test/units.mjs         # 13 fast checks: worldgen determinism, data consistency, building rules, physics, inventory, persistence, accounts
+node test/integration.mjs   # 19 steps with real WebSocket bots: gather → craft → build → locks → furnace/campfire → farming → PvP → teams →
+                            # death/loot → raiding → anti-cheat → reconnect → full-server-restart persistence
 node test/smoke.mjs         # quick join/walk/gather smoke test
+node test/e2e.cjs           # headless-Chromium E2E through the real UI: register, host a server, join, build with the mouse, reload/fire, campfire
+node test/showcase.mjs      # visual QA: warps a browser player to landmarks/weather/night and saves screenshots (default /tmp/ew-show)
 ```
 
-Browser screenshots/E2E use Playwright + headless Chromium (`test/pw.cjs`); see `docs/PLAN.md` for the manual playtest checklist.
+The browser tests need Playwright with Chromium (`npm i -g playwright`; `E2E_OUT=dir` changes the screenshot folder). **Network QA:** open the game with
+`http://localhost:3000/?lag=200&loss=0.03` to simulate 200 ms round-trip latency and 3% packet loss on movement input — prediction/reconciliation should
+still feel smooth (the server logs a `corr` only when a move is genuinely illegal).
 
 ## Deployment
 
